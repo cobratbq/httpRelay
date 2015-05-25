@@ -2,24 +2,13 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"io"
 	"log"
 	"net/http"
 
 	"golang.org/x/net/proxy"
 )
-
-func main() {
-	// TODO add cli flag support
-	// TODO change default socks proxy port to 8080
-	dialer, err := proxy.SOCKS5("tcp", "localhost:8000", nil, proxy.Direct)
-	if err != nil {
-		log.Println("error creating proxy definition:", err.Error())
-		return
-	}
-	log.Println("HTTP proxy relay server started.")
-	log.Println(http.ListenAndServe(":8080", &HTTPProxyHandler{Dialer: dialer}))
-}
 
 var hopByHopHeaders map[string]struct{}
 
@@ -35,8 +24,24 @@ func init() {
 	hopByHopHeaders["Upgrade"] = struct{}{}
 }
 
+func main() {
+	socksAddr := flag.String("socks", "localhost:8000", "Address and port of SOCKS5 proxy server.")
+	listenAddr := flag.String("listen", ":8080", "Listening address and port for HTTP relay proxy.")
+	flag.Parse()
+	// Prepare proxy relay with target SOCKS proxy
+	dialer, err := proxy.SOCKS5("tcp", *socksAddr, nil, proxy.Direct)
+	if err != nil {
+		log.Println("error creating proxy definition:", err.Error())
+		return
+	}
+	// Start HTTP proxy server
+	log.Println("HTTP proxy relay server started on", *listenAddr, "relaying to", *socksAddr)
+	log.Println(http.ListenAndServe(*listenAddr, &HTTPProxyHandler{Dialer: dialer}))
+}
+
 // HTTPProxyHandler is a proxy handler that passes on request to a SOCKS5 proxy server.
 type HTTPProxyHandler struct {
+	// Dialer is the dialer for connecting to the SOCKS5 proxy.
 	Dialer proxy.Dialer
 }
 
@@ -59,7 +64,7 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
 	log.Println(req.Method, req.Host, req.Proto)
 	// Establish connection with socks proxy
-	conn, err := h.Dialer.Dial("tcp4", fullHost(req.Host))
+	conn, err := h.Dialer.Dial("tcp", fullHost(req.Host))
 	if err != nil {
 		resp.WriteHeader(500)
 		return err
@@ -73,10 +78,15 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		resp.WriteHeader(500)
 		return err
 	}
+	// Transfer headers to proxy request
+	reqHdrs := make(map[string]struct{}, len(hopByHopHeaders))
+	duplicateDropHeaderSet(reqHdrs, hopByHopHeaders)
+	CopyHeaders(reqHdrs, proxyReq.Header, req.Header)
 	proxyReq.Header.Add("User-Agent", req.UserAgent())
 	// Send request to socks proxy
 	if err = proxyReq.Write(conn); err != nil {
-		log.Println("failed to write request meant for proxy to the proxy connection", err.Error())
+		resp.WriteHeader(500)
+		return err
 	}
 	// Read proxy response
 	proxyRespReader := bufio.NewReader(conn)
@@ -85,11 +95,18 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		resp.WriteHeader(500)
 		return err
 	}
-	// Prepare response to client
-	copyHeaders(resp, proxyResp)
+	// Transfer headers to client response
+	respHdrs := make(map[string]struct{}, len(hopByHopHeaders))
+	duplicateDropHeaderSet(respHdrs, hopByHopHeaders)
+	CopyHeaders(respHdrs, resp.Header(), proxyResp.Header)
+	if err = VerifyHeaders(resp.Header()); err != nil {
+		resp.WriteHeader(502)
+		return err
+	}
+	resp.WriteHeader(proxyResp.StatusCode)
+	// Copy response body to client
 	_, err = io.Copy(resp, proxyResp.Body)
 	if err != nil {
-		resp.WriteHeader(500)
 		return err
 	}
 	logError(proxyResp.Body.Close(), "error closing response body:")
@@ -99,7 +116,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) error {
 	log.Println("CONNECT", req.Host)
 	// Establish connection with socks proxy
-	proxyConn, err := h.Dialer.Dial("tcp4", req.Host)
+	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
 	if err != nil {
 		return err
 	}
@@ -118,7 +135,7 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 		return err
 	}
 	// Start copying data from one connection to the other
-	go tunnel(proxyConn, clientConn)
-	go tunnel(clientConn, proxyConn)
+	go transfer(proxyConn, clientConn)
+	go transfer(clientConn, proxyConn)
 	return nil
 }
