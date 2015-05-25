@@ -62,11 +62,17 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 }
 
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
+	var err error
 	log.Println(req.Method, req.Host, req.Proto)
+	// Verify request before continuing
+	if err = VerifyRequest(req); err != nil {
+		resp.WriteHeader(http.StatusBadRequest)
+		return err
+	}
 	// Establish connection with socks proxy
 	conn, err := h.Dialer.Dial("tcp", fullHost(req.Host))
 	if err != nil {
-		resp.WriteHeader(500)
+		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 	defer func() {
@@ -75,32 +81,33 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Prepare request for socks proxy
 	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, req.Body)
 	if err != nil {
-		resp.WriteHeader(500)
+		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 	// Transfer headers to proxy request
 	reqHdrs := make(map[string]struct{}, len(hopByHopHeaders))
 	duplicateDropHeaderSet(reqHdrs, hopByHopHeaders)
 	CopyHeaders(reqHdrs, proxyReq.Header, req.Header)
-	proxyReq.Header.Add("User-Agent", req.UserAgent())
+	// FIXME add what user agent?
+	proxyReq.Header.Add("User-Agent", "proxy")
 	// Send request to socks proxy
 	if err = proxyReq.Write(conn); err != nil {
-		resp.WriteHeader(500)
+		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 	// Read proxy response
 	proxyRespReader := bufio.NewReader(conn)
 	proxyResp, err := http.ReadResponse(proxyRespReader, proxyReq)
 	if err != nil {
-		resp.WriteHeader(500)
+		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 	// Transfer headers to client response
 	respHdrs := make(map[string]struct{}, len(hopByHopHeaders))
 	duplicateDropHeaderSet(respHdrs, hopByHopHeaders)
 	CopyHeaders(respHdrs, resp.Header(), proxyResp.Header)
-	if err = VerifyHeaders(resp.Header()); err != nil {
-		resp.WriteHeader(502)
+	if err = VerifyResponse(proxyResp); err != nil {
+		resp.WriteHeader(http.StatusBadGateway)
 		return err
 	}
 	resp.WriteHeader(proxyResp.StatusCode)

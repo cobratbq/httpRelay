@@ -35,13 +35,19 @@ func CopyHeaders(dropHdrs map[string]struct{}, dst http.Header, src http.Header)
 var ErrMultipleContentLengthVariations = errors.New("Encountered multiple variations on Content-Length header.")
 var ErrMultipleContentLengthHeaders = errors.New("Encountered response with multiple Content-Length headers.")
 
-func VerifyHeaders(headers http.Header) error {
+func VerifyRequest(req *http.Request) error {
+	// FIXME verify request.
+	// FIXME verify requestURI vs. Host header
+	return nil
+}
+
+func VerifyResponse(resp *http.Response) error {
 	var contentLengthCount = 0
 	var contentLength = false
 	var contentLengthHeader string
 	var transferEncodingChunked = false
 	// verify all headers
-	for k, v := range headers {
+	for k, v := range resp.Header {
 		if strings.ToLower(k) == "content-length" {
 			contentLengthCount++
 			contentLength = true
@@ -64,7 +70,7 @@ func VerifyHeaders(headers http.Header) error {
 		return ErrMultipleContentLengthVariations
 	}
 	if contentLength && transferEncodingChunked {
-		delete(headers, contentLengthHeader)
+		delete(resp.Header, contentLengthHeader)
 		log.Println("Deleted Content-Length header since response also contains Transfer-Encoding: chunked header.")
 	}
 	return nil
