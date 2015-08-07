@@ -6,8 +6,11 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"regexp"
 	"strings"
 )
+
+var tokenPattern = regexp.MustCompile(`^[\d\w\!#\$%&'\*\+\-\.\^_\|~` + "`" + `]+$`)
 
 // fullHost appends the default port to the provided host if no port is
 // specified.
@@ -44,7 +47,11 @@ func processConnectionHdr(connHdrs map[string]struct{}, value string) {
 	parts := strings.Split(value, ",")
 	for _, part := range parts {
 		header := strings.TrimSpace(part)
-		connHdrs[header] = struct{}{}
+		if tokenPattern.MatchString(header) {
+			connHdrs[header] = struct{}{}
+		} else {
+			log.Println("Skipping bad value in Connection header.")
+		}
 	}
 }
 
@@ -61,7 +68,7 @@ func acquireConn(resp http.ResponseWriter) (net.Conn, error) {
 
 // transfer may be launched as goroutine. It that copies all content from one
 // connection to the next.
-func transfer(dst, src net.Conn) {
+func transfer(dst io.WriteCloser, src io.Reader) {
 	_, err := io.Copy(dst, src)
 	if err != nil {
 		log.Println("error occurred while transferring data between connections", err.Error())
