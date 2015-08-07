@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+// fullHost appends the default port to the provided host if no port is
+// specified.
 func fullHost(host string) string {
 	fullhost := host
 	if strings.IndexByte(host, ':') == -1 {
@@ -46,6 +48,8 @@ func processConnectionHdr(connHdrs map[string]struct{}, value string) {
 	}
 }
 
+// acquireConn acquires the underlying connection by inspecting the
+// ResponseWriter provided.
 func acquireConn(resp http.ResponseWriter) (net.Conn, error) {
 	hijacker, ok := resp.(http.Hijacker)
 	if !ok {
@@ -55,6 +59,8 @@ func acquireConn(resp http.ResponseWriter) (net.Conn, error) {
 	return clientConn, err
 }
 
+// transfer may be launched as goroutine. It that copies all content from one
+// connection to the next.
 func transfer(dst, src net.Conn) {
 	_, err := io.Copy(dst, src)
 	if err != nil {
@@ -63,6 +69,7 @@ func transfer(dst, src net.Conn) {
 	logError(dst.Close(), "error while closing tunnel destination connection:")
 }
 
+// logError logs an error if an error was returned.
 func logError(err error, prefix string) {
 	if err != nil {
 		log.Println(prefix, err.Error())

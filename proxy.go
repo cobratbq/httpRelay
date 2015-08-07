@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"io"
 	"log"
 	"net/http"
@@ -10,6 +9,11 @@ import (
 	"golang.org/x/net/proxy"
 )
 
+// mnot's blog: https://www.mnot.net/blog/2011/07/11/what_proxies_must_do
+// rfc: http://tools.ietf.org/html/draft-ietf-httpbis-p1-messaging-14#section-3.3
+
+// headers that are dedicated to a single connection and should not copied to
+// the SOCKS proxy server connection
 var hopByHopHeaders = map[string]struct{}{
 	"Connection":           struct{}{},
 	"Keep-Alive":           struct{}{},
@@ -19,24 +23,6 @@ var hopByHopHeaders = map[string]struct{}{
 	"Trailer":           struct{}{},
 	"Transfer-Encoding": struct{}{},
 	"Upgrade":           struct{}{},
-}
-
-// mnot's blog: https://www.mnot.net/blog/2011/07/11/what_proxies_must_do
-// rfc: http://tools.ietf.org/html/draft-ietf-httpbis-p1-messaging-14#section-3.3
-
-func main() {
-	socksAddr := flag.String("socks", "localhost:8000", "Address and port of SOCKS5 proxy server.")
-	listenAddr := flag.String("listen", ":8080", "Listening address and port for HTTP relay proxy.")
-	flag.Parse()
-	// Prepare proxy relay with target SOCKS proxy
-	dialer, err := proxy.SOCKS5("tcp", *socksAddr, nil, proxy.Direct)
-	if err != nil {
-		log.Println("error creating proxy definition:", err.Error())
-		return
-	}
-	// Start HTTP proxy server
-	log.Println("HTTP proxy relay server started on", *listenAddr, "relaying to", *socksAddr)
-	log.Println(http.ListenAndServe(*listenAddr, &HTTPProxyHandler{Dialer: dialer}))
 }
 
 // HTTPProxyHandler is a proxy handler that passes on request to a SOCKS5 proxy server.
