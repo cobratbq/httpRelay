@@ -17,7 +17,7 @@ func fullHost(host string) string {
 	return fullhost
 }
 
-func CopyHeaders(dropHdrs map[string]struct{}, dst http.Header, src http.Header) {
+func copyHeaders(dropHdrs map[string]struct{}, dst http.Header, src http.Header) {
 	for k, vals := range src {
 		if _, drop := dropHdrs[k]; drop {
 			continue
@@ -30,50 +30,6 @@ func CopyHeaders(dropHdrs map[string]struct{}, dst http.Header, src http.Header)
 			dst.Add(k, v)
 		}
 	}
-}
-
-var ErrMultipleContentLengthVariations = errors.New("Encountered multiple variations on Content-Length header.")
-var ErrMultipleContentLengthHeaders = errors.New("Encountered response with multiple Content-Length headers.")
-
-func VerifyRequest(req *http.Request) error {
-	// FIXME verify request.
-	// FIXME verify requestURI vs. Host header
-	return nil
-}
-
-func VerifyResponse(resp *http.Response) error {
-	var contentLengthCount = 0
-	var contentLength = false
-	var contentLengthHeader string
-	var transferEncodingChunked = false
-	// verify all headers
-	for k, v := range resp.Header {
-		if strings.ToLower(k) == "content-length" {
-			contentLengthCount++
-			contentLength = true
-			contentLengthHeader = k
-			if len(v) > 1 {
-				log.Printf("Encountered response with multiple Content-Length headers: %+v", v)
-				return ErrMultipleContentLengthHeaders
-			}
-		}
-		if strings.ToLower(k) == "transfer-encoding" {
-			for _, val := range v {
-				if strings.ToLower(val) == "chunked" {
-					transferEncodingChunked = true
-				}
-			}
-		}
-	}
-	// additional validation
-	if contentLengthCount > 1 {
-		return ErrMultipleContentLengthVariations
-	}
-	if contentLength && transferEncodingChunked {
-		delete(resp.Header, contentLengthHeader)
-		log.Println("Deleted Content-Length header since response also contains Transfer-Encoding: chunked header.")
-	}
-	return nil
 }
 
 func duplicateDropHeaderSet(dst map[string]struct{}, src map[string]struct{}) {
@@ -108,8 +64,7 @@ func transfer(dst, src net.Conn) {
 }
 
 func logError(err error, prefix string) {
-	if err == nil {
-		return
+	if err != nil {
+		log.Println(prefix, err.Error())
 	}
-	log.Println(prefix, err.Error())
 }

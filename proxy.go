@@ -10,19 +10,19 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-var hopByHopHeaders map[string]struct{}
-
-func init() {
-	hopByHopHeaders = make(map[string]struct{})
-	hopByHopHeaders["Connection"] = struct{}{}
-	hopByHopHeaders["Keep-Alive"] = struct{}{}
-	hopByHopHeaders["Proxy-Authorization"] = struct{}{}
-	hopByHopHeaders["Proxy-Authentication"] = struct{}{}
-	hopByHopHeaders["TE"] = struct{}{}
-	hopByHopHeaders["Trailer"] = struct{}{}
-	hopByHopHeaders["Transfer-Encoding"] = struct{}{}
-	hopByHopHeaders["Upgrade"] = struct{}{}
+var hopByHopHeaders = map[string]struct{}{
+	"Connection":           struct{}{},
+	"Keep-Alive":           struct{}{},
+	"Proxy-Authorization":  struct{}{},
+	"Proxy-Authentication": struct{}{},
+	"TE":                struct{}{},
+	"Trailer":           struct{}{},
+	"Transfer-Encoding": struct{}{},
+	"Upgrade":           struct{}{},
 }
+
+// mnot's blog: https://www.mnot.net/blog/2011/07/11/what_proxies_must_do
+// rfc: http://tools.ietf.org/html/draft-ietf-httpbis-p1-messaging-14#section-3.3
 
 func main() {
 	socksAddr := flag.String("socks", "localhost:8000", "Address and port of SOCKS5 proxy server.")
@@ -57,18 +57,14 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 		err = h.processRequest(resp, req)
 	}
 	if err != nil {
-		log.Println("error:", err.Error())
+		log.Println("Error:", err.Error())
 	}
 }
 
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
 	var err error
 	log.Println(req.Method, req.Host, req.Proto)
-	// Verify request before continuing
-	if err = VerifyRequest(req); err != nil {
-		resp.WriteHeader(http.StatusBadRequest)
-		return err
-	}
+	// Verification of requests is already handled by net/http library.
 	// Establish connection with socks proxy
 	conn, err := h.Dialer.Dial("tcp", fullHost(req.Host))
 	if err != nil {
@@ -85,10 +81,11 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		return err
 	}
 	// Transfer headers to proxy request
-	reqHdrs := make(map[string]struct{}, len(hopByHopHeaders))
-	duplicateDropHeaderSet(reqHdrs, hopByHopHeaders)
-	CopyHeaders(reqHdrs, proxyReq.Header, req.Header)
-	// FIXME add what user agent?
+	dropReqHdrs := make(map[string]struct{}, len(hopByHopHeaders))
+	duplicateDropHeaderSet(dropReqHdrs, hopByHopHeaders)
+	copyHeaders(dropReqHdrs, proxyReq.Header, req.Header)
+	// FIXME add Via header
+	// FIXME add what user agent? (Does setting header actually work?)
 	proxyReq.Header.Add("User-Agent", "proxy")
 	// Send request to socks proxy
 	if err = proxyReq.Write(conn); err != nil {
@@ -105,13 +102,9 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Transfer headers to client response
 	respHdrs := make(map[string]struct{}, len(hopByHopHeaders))
 	duplicateDropHeaderSet(respHdrs, hopByHopHeaders)
-	CopyHeaders(respHdrs, resp.Header(), proxyResp.Header)
-	if err = VerifyResponse(proxyResp); err != nil {
-		resp.WriteHeader(http.StatusBadGateway)
-		return err
-	}
+	copyHeaders(respHdrs, resp.Header(), proxyResp.Header)
+	// Verification of response is already handled by net/http library.
 	resp.WriteHeader(proxyResp.StatusCode)
-	// Copy response body to client
 	_, err = io.Copy(resp, proxyResp.Body)
 	if err != nil {
 		return err
