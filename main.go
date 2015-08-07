@@ -15,10 +15,10 @@ func main() {
 	// Prepare proxy relay with target SOCKS proxy
 	dialer, err := proxy.SOCKS5("tcp", *socksAddr, nil, proxy.Direct)
 	if err != nil {
-		log.Println("error creating proxy definition:", err.Error())
+		log.Println("Failed to create proxy definition:", err.Error())
 		return
 	}
 	// Start HTTP proxy server
-	log.Println("HTTP proxy relay server started on", *listenAddr, "relaying to", *socksAddr)
+	log.Println("HTTP proxy relay server started on", *listenAddr, "relaying to SOCKS proxy", *socksAddr)
 	log.Println(http.ListenAndServe(*listenAddr, &HTTPProxyHandler{Dialer: dialer}))
 }
