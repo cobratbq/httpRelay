@@ -114,7 +114,7 @@ func TestCopyHeaders(t *testing.T) {
 	if len(dst) != 3 {
 		t.Errorf("Expected exactly 2 headers, but found a different number: %#v\n", dst)
 	}
-	for k, _ = range hopByHopHeaders {
+	for k = range hopByHopHeaders {
 		// check simple dropped headers
 		if _, ok = dst[k]; ok {
 			t.Error("Did not expect header in destination map. It should be dropped:", k)
@@ -189,7 +189,7 @@ type errorBuffer struct {
 }
 
 func (e *errorBuffer) Write(p []byte) (int, error) {
-	e.Buffer.Write(p[:10])
+	_, _ = e.Buffer.Write(p[:10])
 	return 10, errors.New("bad stuff happened")
 }
 

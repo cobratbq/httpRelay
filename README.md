@@ -1,7 +1,16 @@
 # HTTP proxy to SOCKS 5 proxy relay
 
-Basic HTTP proxy relaying requests to an existing (external) SOCKS 5 proxy server. This can be useful in case SOCKS proxy is the only proxy available, but it is not supported by your application.
+Single-purpose HTTP proxy relaying requests to an existing (external) SOCKS 5 proxy server. This tool is useful in the case where the SOCKS proxy is the only proxy available, but the application that you wish to use does not support SOCKS. This little program is a welcome addition to SSH's capability of setting up a SOCKS proxy server.
+
+*Please note*: This implementation is specifically limited to this use case only. Other use cases may be trivial to create, however they are not part of this implementation.
+
+## Usage:
+
+`./relay -listen :8080 -socks localhost:8000`
+
+Start a HTTP relay proxy that listens on port 8080 of every interface and connects to a SOCKS proxy server on localhost port 8080 for relaying your requests.
 
 # References
 
+* [Go extension library for proxy connections](http://golang.org/x/net/proxy)
 * [What proxies must do](https://www.mnot.net/blog/2011/07/11/what_proxies_must_do)
