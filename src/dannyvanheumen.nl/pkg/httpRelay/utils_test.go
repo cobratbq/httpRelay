@@ -7,7 +7,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"reflect"
 	"testing"
 )
 
@@ -98,42 +97,23 @@ func TestProcessConnectionHdrsBad(t *testing.T) {
 	}
 }
 
-func TestDuplicateHeaders(t *testing.T) {
-	var src = map[string]struct{}{
-		"Host":             struct{}{},
-		"Location":         struct{}{},
-		"Foo":              struct{}{},
-		"Content-Encoding": struct{}{},
-		"Connection":       struct{}{},
-	}
-	var dst = map[string]struct{}{}
-	duplicateDropHeaderSet(dst, src)
-	if !reflect.DeepEqual(dst, src) {
-		t.Errorf("Expected dst to be equal to src, but wasn't: %#v\n", dst)
-	}
-}
-
 func TestCopyHeaders(t *testing.T) {
 	var src = http.Header{}
-	src.Add("Host", "test-my-stuff.com")
+	src.Add("Transfer-Encoding", "gzip")
 	src.Add("Content-Type", "image/jpeg")
 	src.Add("Trailer", "something")
 	src.Add("Content-Encoding", "gzip")
 	src.Add("Via", "bla:1234")
 	src.Add("Connection", "Keep-Alive")
 	src.Add("Keep-Alive", "close")
-	var dropHdrs = map[string]struct{}{
-		"Host":    struct{}{},
-		"Trailer": struct{}{},
-	}
 	var dst = http.Header{}
-	copyHeaders(dropHdrs, dst, src)
+	copyHeaders(dst, src)
 	var ok bool
 	var k string
 	if len(dst) != 3 {
 		t.Errorf("Expected exactly 2 headers, but found a different number: %#v\n", dst)
 	}
-	for k, _ = range dropHdrs {
+	for k, _ = range hopByHopHeaders {
 		// check simple dropped headers
 		if _, ok = dst[k]; ok {
 			t.Error("Did not expect header in destination map. It should be dropped:", k)

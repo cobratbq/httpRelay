@@ -11,19 +11,6 @@ import (
 // mnot's blog: https://www.mnot.net/blog/2011/07/11/what_proxies_must_do
 // rfc: http://tools.ietf.org/html/draft-ietf-httpbis-p1-messaging-14#section-3.3
 
-// headers that are dedicated to a single connection and should not copied to
-// the SOCKS proxy server connection
-var hopByHopHeaders = map[string]struct{}{
-	"Connection":           struct{}{},
-	"Keep-Alive":           struct{}{},
-	"Proxy-Authorization":  struct{}{},
-	"Proxy-Authentication": struct{}{},
-	"TE":                struct{}{},
-	"Trailer":           struct{}{},
-	"Transfer-Encoding": struct{}{},
-	"Upgrade":           struct{}{},
-}
-
 // HTTPProxyHandler is a proxy handler that passes on request to a SOCKS5 proxy server.
 type HTTPProxyHandler struct {
 	// Dialer is the dialer for connecting to the SOCKS5 proxy.
@@ -64,9 +51,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		return err
 	}
 	// Transfer headers to proxy request
-	dropReqHdrs := make(map[string]struct{}, len(hopByHopHeaders))
-	duplicateDropHeaderSet(dropReqHdrs, hopByHopHeaders)
-	copyHeaders(dropReqHdrs, proxyReq.Header, req.Header)
+	copyHeaders(proxyReq.Header, req.Header)
 	// FIXME add Via header
 	// FIXME add what user agent? (Does setting header actually work?)
 	proxyReq.Header.Add("User-Agent", "proxy")
@@ -83,9 +68,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		return err
 	}
 	// Transfer headers to client response
-	respHdrs := make(map[string]struct{}, len(hopByHopHeaders))
-	duplicateDropHeaderSet(respHdrs, hopByHopHeaders)
-	copyHeaders(respHdrs, resp.Header(), proxyResp.Header)
+	copyHeaders(resp.Header(), proxyResp.Header)
 	// Verification of response is already handled by net/http library.
 	resp.WriteHeader(proxyResp.StatusCode)
 	_, err = io.Copy(resp, proxyResp.Body)

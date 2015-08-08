@@ -10,8 +10,24 @@ import (
 	"strings"
 )
 
+// tokenPatternRegex is the raw string pattern that should be compiled.
+const tokenPatternRegex = `^[\d\w\!#\$%&'\*\+\-\.\^_\|~` + "`" + `]+$`
+
 // tokenPattern is the pattern of a valid token.
-var tokenPattern = regexp.MustCompile(`^[\d\w\!#\$%&'\*\+\-\.\^_\|~` + "`" + `]+$`)
+var tokenPattern = regexp.MustCompile(tokenPatternRegex)
+
+// headers that are dedicated to a single connection and should not copied to
+// the SOCKS proxy server connection
+var hopByHopHeaders = map[string]struct{}{
+	"Connection":           struct{}{},
+	"Keep-Alive":           struct{}{},
+	"Proxy-Authorization":  struct{}{},
+	"Proxy-Authentication": struct{}{},
+	"TE":                struct{}{},
+	"Trailer":           struct{}{},
+	"Transfer-Encoding": struct{}{},
+	"Upgrade":           struct{}{},
+}
 
 // ErrNonHijackableWriter is an error that is returned when the connection
 // cannot be hijacked.
@@ -29,26 +45,23 @@ func fullHost(host string) string {
 
 // copyHeaders copies all the headers that are not classified as hop-to-hop
 // headers.
-func copyHeaders(dropHdrs map[string]struct{}, dst http.Header, src http.Header) {
+func copyHeaders(dst http.Header, src http.Header) {
+	var dynDropHdrs = map[string]struct{}{}
 	for k, vals := range src {
-		if _, drop := dropHdrs[k]; drop {
+		if _, drop := hopByHopHeaders[k]; drop {
+			continue
+		} else if _, drop := dynDropHdrs[k]; drop {
+			continue
+		} else if k == "Connection" {
+			// FIXME should we do something with dropped headers?
+			for _, v := range vals {
+				processConnectionHdr(dynDropHdrs, v)
+			}
 			continue
 		}
 		for _, v := range vals {
-			if k == "Connection" {
-				// FIXME should we do something with dropped headers?
-				processConnectionHdr(dropHdrs, v)
-				continue
-			}
 			dst.Add(k, v)
 		}
-	}
-}
-
-// duplicateDropHeaders duplicates the drop-headers set so they may be mutated
-func duplicateDropHeaderSet(dst map[string]struct{}, src map[string]struct{}) {
-	for k, v := range src {
-		dst[k] = v
 	}
 }
 
