@@ -14,7 +14,8 @@ import (
 // HTTPProxyHandler is a proxy handler that passes on request to a SOCKS5 proxy server.
 type HTTPProxyHandler struct {
 	// Dialer is the dialer for connecting to the SOCKS5 proxy.
-	Dialer proxy.Dialer
+	Dialer    proxy.Dialer
+	UserAgent string
 }
 
 func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
@@ -53,8 +54,10 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Transfer headers to proxy request
 	copyHeaders(proxyReq.Header, req.Header)
 	// FIXME add Via header
-	// FIXME add what user agent? (Does setting header actually work?)
-	proxyReq.Header.Add("User-Agent", "proxy")
+	if h.UserAgent != "" {
+		// Add specified user agent as header.
+		proxyReq.Header.Add("User-Agent", h.UserAgent)
+	}
 	// Send request to socks proxy
 	if err = proxyReq.Write(conn); err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
