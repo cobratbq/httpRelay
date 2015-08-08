@@ -3,7 +3,6 @@ package httpRelay
 import (
 	"bufio"
 	"io"
-	"log"
 	"net/http"
 
 	"golang.org/x/net/proxy"
@@ -42,14 +41,12 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 	default:
 		err = h.processRequest(resp, req)
 	}
-	if err != nil {
-		log.Println("Error:", err.Error())
-	}
+	logError(err, "Error serving proxy relay")
 }
 
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
 	var err error
-	log.Println(req.Method, req.Host, req.Proto)
+	logRequest(req)
 	// Verification of requests is already handled by net/http library.
 	// Establish connection with socks proxy
 	conn, err := h.Dialer.Dial("tcp", fullHost(req.Host))
@@ -100,7 +97,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 }
 
 func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) error {
-	log.Println("CONNECT", req.Host)
+	logRequest(req)
 	// Establish connection with socks proxy
 	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
 	if err != nil {
@@ -110,14 +107,14 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 	clientConn, err := acquireConn(resp)
 	if err != nil {
 		logError(proxyConn.Close(), "error while closing proxy connection:")
-		resp.WriteHeader(500)
+		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 	// Send 200 Connection established to client to signal tunnel ready
 	_, err = clientConn.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n\r\n"))
 	if err != nil {
 		logError(proxyConn.Close(), "error while closing proxy connection:")
-		resp.WriteHeader(500)
+		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 	// Start copying data from one connection to the other

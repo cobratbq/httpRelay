@@ -54,6 +54,11 @@ func TestLogError(t *testing.T) {
 	logError(errors.New("test error"), "my prefix")
 }
 
+func TestLogRequest(t *testing.T) {
+	req := http.Request{Method: "GET", Host: "localhost:1414", Proto: "HTTP/1.1"}
+	logRequest(&req)
+}
+
 func TestProcessConnectionHdrs(t *testing.T) {
 	var hdrs = map[string]struct{}{}
 	var val = "Keep-Alive  ,  \tFoo,bar"

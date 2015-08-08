@@ -13,7 +13,8 @@ import (
 // tokenPattern is the pattern of a valid token.
 var tokenPattern = regexp.MustCompile(`^[\d\w\!#\$%&'\*\+\-\.\^_\|~` + "`" + `]+$`)
 
-// ErrNonHijackableWriter is an error that is returned when the connection cannot be hijacked.
+// ErrNonHijackableWriter is an error that is returned when the connection
+// cannot be hijacked.
 var ErrNonHijackableWriter = errors.New("failed to acquire raw client connection: writer is not hijackable")
 
 // fullHost appends the default port to the provided host if no port is
@@ -26,6 +27,8 @@ func fullHost(host string) string {
 	return fullhost
 }
 
+// copyHeaders copies all the headers that are not classified as hop-to-hop
+// headers.
 func copyHeaders(dropHdrs map[string]struct{}, dst http.Header, src http.Header) {
 	for k, vals := range src {
 		if _, drop := dropHdrs[k]; drop {
@@ -33,6 +36,7 @@ func copyHeaders(dropHdrs map[string]struct{}, dst http.Header, src http.Header)
 		}
 		for _, v := range vals {
 			if k == "Connection" {
+				// FIXME should we do something with dropped headers?
 				processConnectionHdr(dropHdrs, v)
 				continue
 			}
@@ -41,22 +45,27 @@ func copyHeaders(dropHdrs map[string]struct{}, dst http.Header, src http.Header)
 	}
 }
 
+// duplicateDropHeaders duplicates the drop-headers set so they may be mutated
 func duplicateDropHeaderSet(dst map[string]struct{}, src map[string]struct{}) {
 	for k, v := range src {
 		dst[k] = v
 	}
 }
 
-func processConnectionHdr(connHdrs map[string]struct{}, value string) {
+// processConnectionHdr processes the Connection header and adds all headers
+// listed in value as droppable headers.
+func processConnectionHdr(dropHdrs map[string]struct{}, value string) []string {
+	var bad []string
 	parts := strings.Split(value, ",")
 	for _, part := range parts {
 		header := strings.TrimSpace(part)
 		if tokenPattern.MatchString(header) {
-			connHdrs[header] = struct{}{}
+			dropHdrs[header] = struct{}{}
 		} else {
-			log.Println("Skipping bad value in Connection header.")
+			bad = append(bad, header)
 		}
 	}
+	return bad
 }
 
 // acquireConn acquires the underlying connection by inspecting the
@@ -74,9 +83,7 @@ func acquireConn(resp http.ResponseWriter) (net.Conn, error) {
 // connection to the next.
 func transfer(dst io.WriteCloser, src io.Reader) {
 	_, err := io.Copy(dst, src)
-	if err != nil {
-		log.Println("error occurred while transferring data between connections", err.Error())
-	}
+	logError(err, "error occurred while transferring data between connections")
 	logError(dst.Close(), "error while closing tunnel destination connection:")
 }
 
@@ -85,4 +92,9 @@ func logError(err error, prefix string) {
 	if err != nil {
 		log.Println(prefix, err.Error())
 	}
+}
+
+// log the request
+func logRequest(req *http.Request) {
+	log.Println(req.Method, req.Host, req.Proto)
 }
