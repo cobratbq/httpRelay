@@ -1,0 +1,12 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "golang.org/x/net/proxy",
+			"repository": "https://go.googlesource.com/net",
+			"revision": "1bc0720082d79ce7ffc6ef6e523d00d46b0dee45",
+			"branch": "master",
+			"path": "/proxy"
+		}
+	]
+}

@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"dannyvanheumen.nl/pkg/httpRelay"
+
 	"golang.org/x/net/proxy"
 )
 
@@ -20,5 +22,5 @@ func main() {
 	}
 	// Start HTTP proxy server
 	log.Println("HTTP proxy relay server started on", *listenAddr, "relaying to SOCKS proxy", *socksAddr)
-	log.Println(http.ListenAndServe(*listenAddr, &HTTPProxyHandler{Dialer: dialer}))
+	log.Println(http.ListenAndServe(*listenAddr, &httpRelay.HTTPProxyHandler{Dialer: dialer}))
 }
