@@ -10,7 +10,11 @@ import (
 	"strings"
 )
 
+// tokenPattern is the pattern of a valid token.
 var tokenPattern = regexp.MustCompile(`^[\d\w\!#\$%&'\*\+\-\.\^_\|~` + "`" + `]+$`)
+
+// ErrNonHijackableWriter is an error that is returned when the connection cannot be hijacked.
+var ErrNonHijackableWriter = errors.New("failed to acquire raw client connection: writer is not hijackable")
 
 // fullHost appends the default port to the provided host if no port is
 // specified.
@@ -60,7 +64,7 @@ func processConnectionHdr(connHdrs map[string]struct{}, value string) {
 func acquireConn(resp http.ResponseWriter) (net.Conn, error) {
 	hijacker, ok := resp.(http.Hijacker)
 	if !ok {
-		return nil, errors.New("failed to acquire raw client connection")
+		return nil, ErrNonHijackableWriter
 	}
 	clientConn, _, err := hijacker.Hijack()
 	return clientConn, err
