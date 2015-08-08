@@ -16,10 +16,14 @@ const tokenPatternRegex = `^[\d\w\!#\$%&'\*\+\-\.\^_\|~` + "`" + `]+$`
 // tokenPattern is the pattern of a valid token.
 var tokenPattern = regexp.MustCompile(tokenPatternRegex)
 
+// connectionHeader is the 'Connection' header which is an indicator for other
+// headers that should be dropped as hop-by-hop headers.
+const connectionHeader = "Connection"
+
 // headers that are dedicated to a single connection and should not copied to
 // the SOCKS proxy server connection
 var hopByHopHeaders = map[string]struct{}{
-	"Connection":           struct{}{},
+	connectionHeader:       struct{}{},
 	"Keep-Alive":           struct{}{},
 	"Proxy-Authorization":  struct{}{},
 	"Proxy-Authentication": struct{}{},
@@ -47,16 +51,18 @@ func fullHost(host string) string {
 // headers.
 func copyHeaders(dst http.Header, src http.Header) {
 	var dynDropHdrs = map[string]struct{}{}
+	if vals, ok := src[connectionHeader]; ok {
+		for _, v := range vals {
+			processConnectionHdr(dynDropHdrs, v)
+		}
+	}
 	for k, vals := range src {
+		// This assumes that Connection header is also an element of
+		// hop-by-hop headers such that it will not be processed twice,
+		// but instead is dropped with the others.
 		if _, drop := hopByHopHeaders[k]; drop {
 			continue
 		} else if _, drop := dynDropHdrs[k]; drop {
-			continue
-		} else if k == "Connection" {
-			// FIXME should we do something with dropped headers?
-			for _, v := range vals {
-				processConnectionHdr(dynDropHdrs, v)
-			}
 			continue
 		}
 		for _, v := range vals {

@@ -11,7 +11,7 @@ import (
 )
 
 func TestProcessConnectionHdr(t *testing.T) {
-	headers := make(map[string]struct{})
+	headers := map[string]struct{}{}
 	processConnectionHdr(headers, "Keep-Alive, Foo ,Bar")
 	if len(headers) != 3 {
 		t.Error("Expected exactly 3 entries in headers map.")
@@ -104,8 +104,9 @@ func TestCopyHeaders(t *testing.T) {
 	src.Add("Trailer", "something")
 	src.Add("Content-Encoding", "gzip")
 	src.Add("Via", "bla:1234")
-	src.Add("Connection", "Keep-Alive")
+	src.Add("Connection", "Keep-Alive, Foo")
 	src.Add("Keep-Alive", "close")
+	src.Add("Foo", "Bar")
 	var dst = http.Header{}
 	copyHeaders(dst, src)
 	var ok bool
@@ -119,7 +120,7 @@ func TestCopyHeaders(t *testing.T) {
 			t.Error("Did not expect header in destination map. It should be dropped:", k)
 		}
 	}
-	for _, k = range []string{"Connection", "Keep-Alive"} {
+	for _, k = range []string{"Connection", "Keep-Alive", "Foo"} {
 		// check special treatment of Connection header and its values
 		if _, ok = dst[k]; ok {
 			t.Error("Did not expect Connection header of listings in destination map. It should be dropped:", k)
