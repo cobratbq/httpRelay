@@ -48,7 +48,7 @@ func fullHost(host string) string {
 }
 
 // copyHeaders copies all the headers that are not classified as hop-to-hop
-// headers.
+// headers. (This satisfies 1. Remove Hop-by-hop Headers.)
 func copyHeaders(dst http.Header, src http.Header) {
 	var dynDropHdrs = map[string]struct{}{}
 	if vals, ok := src[connectionHeader]; ok {
@@ -102,8 +102,8 @@ func acquireConn(resp http.ResponseWriter) (net.Conn, error) {
 // connection to the next.
 func transfer(dst io.WriteCloser, src io.Reader) {
 	_, err := io.Copy(dst, src)
-	logError(err, "error occurred while transferring data between connections")
-	logError(dst.Close(), "error while closing tunnel destination connection:")
+	logError(err, "Error occurred while transferring data between connections:")
+	logError(dst.Close(), "Error while closing tunnel destination connection:")
 }
 
 // logError logs an error if an error was returned.
