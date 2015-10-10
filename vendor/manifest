@@ -4,7 +4,7 @@
 		{
 			"importpath": "golang.org/x/net/proxy",
 			"repository": "https://go.googlesource.com/net",
-			"revision": "66f0418ca41253f8d1a024eb9754e9441a8e79b9",
+			"revision": "b846920a172af75fe52c1400ae6094307be83b8a",
 			"branch": "master",
 			"path": "/proxy"
 		}

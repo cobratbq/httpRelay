@@ -8,7 +8,11 @@ Single-purpose HTTP proxy relaying requests to an existing (external) SOCKS 5 pr
 
 `./relay -listen :8080 -socks localhost:8000`
 
-Start a HTTP relay proxy that listens on port 8080 of every interface and connects to a SOCKS proxy server on localhost port 8080 for relaying your requests.
+Start a HTTP relay proxy that listens on port 8080 of every interface and connects to a SOCKS proxy server on localhost port 8000 for relaying your requests.
+
+# Note
+
+Please make sure to use at least [Go 1.4.3](https://github.com/golang/go/issues/12741) or Go 1.5 when compiling this application. These versions of Go have some security-related fixes for the `net/http` package.
 
 # References
 
