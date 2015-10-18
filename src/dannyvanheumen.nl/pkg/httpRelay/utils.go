@@ -115,5 +115,5 @@ func logError(err error, prefix string) {
 
 // log the request
 func logRequest(req *http.Request) {
-	log.Println(req.Method, req.Host, req.Proto)
+	log.Println(req.Proto, req.Method, req.Host)
 }

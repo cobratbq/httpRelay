@@ -65,7 +65,6 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	}
 	// Transfer headers to proxy request
 	copyHeaders(proxyReq.Header, req.Header)
-	// FIXME add Via header
 	if h.UserAgent != "" {
 		// Add specified user agent as header.
 		proxyReq.Header.Add("User-Agent", h.UserAgent)
@@ -109,7 +108,10 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 		return err
 	}
 	// Send 200 Connection established to client to signal tunnel ready
-	_, err = clientConn.Write([]byte("HTTP/1.1 200 Connection established\r\n\r\n\r\n"))
+	// Responses to CONNECT requests MUST NOT contain any body payload.
+	// TODO add additional headers to proxy server's response? (Via)
+	// TODO decide on response message type based on req protocol (http2)
+	_, err = clientConn.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\n"))
 	if err != nil {
 		logError(proxyConn.Close(), "Error while closing proxy connection:")
 		resp.WriteHeader(http.StatusInternalServerError)
