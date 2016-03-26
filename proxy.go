@@ -111,7 +111,7 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 	// Responses to CONNECT requests MUST NOT contain any body payload.
 	// TODO add additional headers to proxy server's response? (Via)
 	// TODO decide on response message type based on req protocol (http2)
-	_, err = clientConn.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\n"))
+	_, err = clientConn.Write([]byte(req.Proto + " 200 Connection established\r\n\r\n"))
 	if err != nil {
 		logError(proxyConn.Close(), "Error while closing proxy connection:")
 		resp.WriteHeader(http.StatusInternalServerError)
