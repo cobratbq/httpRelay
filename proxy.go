@@ -41,7 +41,7 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 	default:
 		err = h.processRequest(resp, req)
 	}
-	logError(err, "Error serving proxy relay")
+	logError(err, "Error serving proxy relay:")
 }
 
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
@@ -51,7 +51,12 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Establish connection with socks proxy
 	conn, err := h.Dialer.Dial("tcp", fullHost(req.Host))
 	if err != nil {
-		resp.WriteHeader(http.StatusInternalServerError)
+		if err == ErrBlockedHost {
+			resp.WriteHeader(http.StatusForbidden)
+		} else {
+			// TODO use different status code here? (502 bad gateway?)
+			resp.WriteHeader(http.StatusInternalServerError)
+		}
 		return err
 	}
 	defer func() {
@@ -98,6 +103,12 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 	// Establish connection with socks proxy
 	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
 	if err != nil {
+		if err == ErrBlockedHost {
+			resp.WriteHeader(http.StatusForbidden)
+		} else {
+			// TODO use different status code here? (502 bad gateway?)
+			resp.WriteHeader(http.StatusInternalServerError)
+		}
 		return err
 	}
 	// Acquire raw connection to the client

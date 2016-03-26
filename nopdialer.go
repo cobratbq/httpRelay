@@ -5,10 +5,10 @@ import (
 	"net"
 )
 
-var ErrBlockedTarget = errors.New("target is blocked")
+var ErrBlockedHost = errors.New("host is blocked")
 
 type NopDialer struct{}
 
 func (NopDialer) Dial(network, addr string) (net.Conn, error) {
-	return nil, ErrBlockedTarget
+	return nil, ErrBlockedHost
 }
