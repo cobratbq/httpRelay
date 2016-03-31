@@ -138,7 +138,7 @@ func TestTransfer(t *testing.T) {
 	var src = "Hello world, this is a bunch of data that is being transferred during a CONNECT session."
 	srcBuf := bytes.NewBufferString(src)
 	dstBuf := closeBuffer{}
-	transfer(&dstBuf, srcBuf)
+	transfer(&dstBuf, srcBuf, "buffer to buffer")
 	if dstBuf.String() != src {
 		t.Errorf("Failed to correctly transfer data from source to destination, source: '%s', destination: '%s'.", src, dstBuf.String())
 	}
@@ -148,7 +148,7 @@ func TestTransferError(t *testing.T) {
 	var src = "Hello world, this is a bunch of data that is being transferred during a CONNECT session."
 	srcBuf := bytes.NewBufferString(src)
 	dstBuf := errorBuffer{}
-	transfer(&dstBuf, srcBuf)
+	transfer(&dstBuf, srcBuf, "buffer to buffer")
 	if dstBuf.String() != "Hello worl" {
 		t.Errorf("Expected only part of message 'Hello worl' but got '%s'.", dstBuf.String())
 	}

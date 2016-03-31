@@ -100,9 +100,13 @@ func acquireConn(resp http.ResponseWriter) (net.Conn, error) {
 
 // transfer may be launched as goroutine. It that copies all content from one
 // connection to the next.
-func transfer(dst io.WriteCloser, src io.Reader) {
+func transfer(dst io.WriteCloser, src io.Reader, direction string) {
 	_, err := io.Copy(dst, src)
-	logError(err, "Error occurred while transferring data between connections:")
+	if err == nil {
+		log.Println("Connection closed (" + direction + ")")
+	} else {
+		logError(err, "Error occurred while transferring data between connections ("+direction+"):")
+	}
 	logError(dst.Close(), "Error while closing tunnel destination connection:")
 }
 
