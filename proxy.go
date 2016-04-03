@@ -2,7 +2,9 @@ package httpRelay
 
 import (
 	"bufio"
+	"bytes"
 	"io"
+	"io/ioutil"
 	"net/http"
 
 	"golang.org/x/net/proxy"
@@ -31,9 +33,6 @@ type HTTPProxyHandler struct {
 }
 
 func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	defer func() {
-		logError(req.Body.Close(), "Error closing client request body:")
-	}()
 	var err error
 	switch req.Method {
 	case "CONNECT":
@@ -45,7 +44,11 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 }
 
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
-	var err error
+	// TODO what to do when body of request is very large?
+	body, err := ioutil.ReadAll(req.Body)
+	logError(req.Body.Close(), "Failed to close request body:")
+	// The request body is only closed in certain error cases. In other cases, we
+	// let body be closed by during processing of request to remote host.
 	logRequest(req)
 	// Verification of requests is already handled by net/http library.
 	// Establish connection with socks proxy
@@ -54,8 +57,8 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		if err == ErrBlockedHost {
 			resp.WriteHeader(http.StatusForbidden)
 		} else {
-			// TODO use different status code here? (502 bad gateway?)
 			resp.WriteHeader(http.StatusInternalServerError)
+			// TODO append body that explains the error as is expected from 5xx http status codes
 		}
 		return err
 	}
@@ -63,9 +66,10 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		logError(conn.Close(), "Error closing connection to socks proxy:")
 	}()
 	// Prepare request for socks proxy
-	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, req.Body)
+	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, bytes.NewReader(body))
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
+		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Transfer headers to proxy request
@@ -77,6 +81,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Send request to socks proxy
 	if err = proxyReq.Write(conn); err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
+		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Read proxy response
@@ -84,6 +89,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	proxyResp, err := http.ReadResponse(proxyRespReader, proxyReq)
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
+		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Transfer headers to client response
@@ -91,14 +97,14 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Verification of response is already handled by net/http library.
 	resp.WriteHeader(proxyResp.StatusCode)
 	_, err = io.Copy(resp, proxyResp.Body)
-	if err != nil {
-		return err
-	}
 	logError(proxyResp.Body.Close(), "Error closing response body:")
-	return nil
+	return err
 }
 
 func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) error {
+	defer func() {
+		logError(req.Body.Close(), "Error while closing request body:")
+	}()
 	logRequest(req)
 	// Establish connection with socks proxy
 	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
@@ -106,8 +112,8 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 		if err == ErrBlockedHost {
 			resp.WriteHeader(http.StatusForbidden)
 		} else {
-			// TODO use different status code here? (502 bad gateway?)
 			resp.WriteHeader(http.StatusInternalServerError)
+			// TODO append body that explains the error as is expected from 5xx http status codes
 		}
 		return err
 	}
@@ -116,16 +122,17 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 	if err != nil {
 		logError(proxyConn.Close(), "Error while closing proxy connection:")
 		resp.WriteHeader(http.StatusInternalServerError)
+		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Send 200 Connection established to client to signal tunnel ready
 	// Responses to CONNECT requests MUST NOT contain any body payload.
 	// TODO add additional headers to proxy server's response? (Via)
-	// TODO decide on response message type based on req protocol (http2)
 	_, err = clientConn.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\n"))
 	if err != nil {
 		logError(proxyConn.Close(), "Error while closing proxy connection:")
 		resp.WriteHeader(http.StatusInternalServerError)
+		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Start copying data from one connection to the other
