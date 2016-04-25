@@ -1,11 +1,11 @@
-package main
+package main // import "github.com/cobratbq/httpRelay/cmd/relay"
 
 import (
 	"flag"
 	"log"
 	"net/http"
 
-	"dannyvanheumen.nl/pkg/httpRelay"
+	"github.com/cobratbq/httpRelay"
 
 	"golang.org/x/net/proxy"
 )
@@ -31,3 +31,4 @@ func main() {
 	log.Println("HTTP proxy relay server started on", *listenAddr, "relaying to SOCKS proxy", *socksAddr)
 	log.Println(http.ListenAndServe(*listenAddr, &httpRelay.HTTPProxyHandler{Dialer: dialer}))
 }
+
