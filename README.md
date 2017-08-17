@@ -6,9 +6,13 @@ Single-purpose HTTP proxy relaying requests to an existing (external) SOCKS 5 pr
 
 ## Usage:
 
-`./relay -listen :8080 -socks localhost:8000`
+`./relay -listen :8080 -socks localhost:8000 -block "127.0.0.1,localhost,192.168/16"`
 
-Start a HTTP relay proxy that listens on port 8080 of every interface and connects to a SOCKS proxy server on localhost port 8000 for relaying your requests.
+Start a HTTP relay proxy that listens on port 8080 of every interface and connects to a SOCKS proxy server on localhost port 8000 for relaying your requests. Block requests that attempt to access 127.0.0.1, 'localhost' or any address in the ip range 192.168.0.0-192.168.255.255.
+
+`./proxy -listen localhost:8080 -block "127.0.0.1,localhost,192.168/16"`
+
+Start a (tiny) generic HTTP proxy server that listens on port 8080 of 'localhost' and proxies requests directly to the internet. Block any requests to 127.0.0.1, 'localhost' or any address in the ip range 192.168.0.0-192.168.255.255.
 
 # Note
 
