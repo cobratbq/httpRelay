@@ -1,4 +1,5 @@
 /bin
+/image/bin
 /pkg
 /vendor
 /cmd/proxy/proxy

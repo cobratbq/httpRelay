@@ -1,4 +1,4 @@
-package main
+package main // import "github.com/cobratbq/httpRelay/cmd/proxy"
 
 import (
 	"flag"
@@ -26,3 +26,4 @@ func main() {
 	log.Println("HTTP proxy server started on", *listenAddr)
 	log.Println(http.ListenAndServe(*listenAddr, &httpRelay.HTTPProxyHandler{Dialer: dialer}))
 }
+
