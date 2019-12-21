@@ -1,5 +1,4 @@
-/bin
-/pkg
-/vendor
+/proxy
+/relay
 /cmd/proxy/proxy
 /cmd/relay/relay
