@@ -4,7 +4,7 @@ Single-purpose HTTP proxy relaying requests to an existing (external) SOCKS 5 pr
 
 *Please note*: This implementation is specifically limited to this use case only. Other use cases may be trivial to create, however they are not part of this implementation.
 
-## Usage:
+## Usage
 
 `./relay -listen :8080 -socks localhost:8000 -block "127.0.0.1,localhost,192.168/16"`
 
@@ -14,11 +14,13 @@ Start a HTTP relay proxy that listens on port 8080 of every interface and connec
 
 Start a (tiny) generic HTTP proxy server that listens on port 8080 of 'localhost' and proxies requests directly to the internet. Block any requests to 127.0.0.1, 'localhost' or any address in the ip range 192.168.0.0-192.168.255.255.
 
-# Note
+## Building
 
-Please make sure to use at least [Go 1.4.3](https://github.com/golang/go/issues/12741) or Go 1.5 when compiling this application. These versions of Go have some security-related fixes for the `net/http` package.
+The simplest way to build is: `make`.
 
-# References
+This build will use the build flag `-tags netgo` to make the result independent of `gcc`. Refer to `Makefile` for details.
+
+## References
 
 * [Go extension library for proxy connections](http://golang.org/x/net/proxy)
 * [What proxies must do](https://www.mnot.net/blog/2011/07/11/what_proxies_must_do)
