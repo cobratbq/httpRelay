@@ -53,18 +53,15 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Verification of requests is already handled by net/http library.
 	// Establish connection with socks proxy
 	conn, err := h.Dialer.Dial("tcp", fullHost(req.Host))
-	if err != nil {
-		if err == ErrBlockedHost {
-			resp.WriteHeader(http.StatusForbidden)
-		} else {
-			resp.WriteHeader(http.StatusInternalServerError)
-			// TODO append body that explains the error as is expected from 5xx http status codes
-		}
+	if err == ErrBlockedHost {
+		resp.WriteHeader(http.StatusForbidden)
+		return err
+	} else if err != nil {
+		resp.WriteHeader(http.StatusInternalServerError)
+		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
-	defer func() {
-		logError(conn.Close(), "Error closing connection to socks proxy:")
-	}()
+	defer closeLogged(conn, "Error closing connection to socks proxy:")
 	// Prepare request for socks proxy
 	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, bytes.NewReader(body))
 	if err != nil {
@@ -102,19 +99,16 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 }
 
 func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) error {
-	defer func() {
-		logError(req.Body.Close(), "Error while closing request body:")
-	}()
+	defer closeLogged(req.Body, "Error while closing request body:")
 	logRequest(req)
 	// Establish connection with socks proxy
 	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
-	if err != nil {
-		if err == ErrBlockedHost {
-			resp.WriteHeader(http.StatusForbidden)
-		} else {
-			resp.WriteHeader(http.StatusInternalServerError)
-			// TODO append body that explains the error as is expected from 5xx http status codes
-		}
+	if err == ErrBlockedHost {
+		resp.WriteHeader(http.StatusForbidden)
+		return err
+	} else if err != nil {
+		resp.WriteHeader(http.StatusInternalServerError)
+		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Acquire raw connection to the client

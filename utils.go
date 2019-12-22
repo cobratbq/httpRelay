@@ -27,10 +27,10 @@ var hopByHopHeaders = map[string]struct{}{
 	"Keep-Alive":           struct{}{},
 	"Proxy-Authorization":  struct{}{},
 	"Proxy-Authentication": struct{}{},
-	"TE":                struct{}{},
-	"Trailer":           struct{}{},
-	"Transfer-Encoding": struct{}{},
-	"Upgrade":           struct{}{},
+	"TE":                   struct{}{},
+	"Trailer":              struct{}{},
+	"Transfer-Encoding":    struct{}{},
+	"Upgrade":              struct{}{},
 }
 
 // ErrNonHijackableWriter is an error that is returned when the connection
@@ -108,6 +108,10 @@ func transfer(dst io.WriteCloser, src io.Reader, direction string) {
 		logError(err, "Error occurred while transferring data between connections ("+direction+"):")
 	}
 	logError(dst.Close(), "Error while closing tunnel destination connection:")
+}
+
+func closeLogged(closer io.Closer, message string) {
+	logError(closer.Close(), message)
 }
 
 // logError logs an error if an error was returned.

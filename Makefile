@@ -18,7 +18,7 @@ relay: library
 	go build -tags netgo ./cmd/relay
 
 .PHONY: test
-test:
+test: library
 	go test -tags netgo
 
 .PHONY: clean
