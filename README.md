@@ -14,13 +14,37 @@ Start a HTTP relay proxy that listens on port 8080 of every interface and connec
 
 Start a (tiny) generic HTTP proxy server that listens on port 8080 of 'localhost' and proxies requests directly to the internet. Block any requests to 127.0.0.1, 'localhost' or any address in the ip range 192.168.0.0-192.168.255.255.
 
+## Program arguments
+
+The program arguments that are available to both programs.
+
+- `-block` provide any number of network addresses/ranges to protect from access through the proxy/relay.
+- `-blocklist` specify a `hosts`-formatted blocklist to be loaded and used.
+- `-listen` specify the address and port on which to listen for incoming proxy connections.
+
+The following program arguments are applicable to `relay` only.
+
+- `-socks` the SOCKS proxy to which to forward http proxy requests.
+
 ## Building
 
 The simplest way to build is: `make`.
 
 This build will use the build flag `-tags netgo` to make the result independent of `gcc`. Refer to `Makefile` for details.
 
+## Changelog
+
+- _2020-02-04_ Added support for loading in blocklists that are checked as part of the proxying process.  
+  The program argument `-blocklist <filename>` allows loading hostname blocklists formatted as the OS `hosts` file. Blocklists in these formats can be downloaded from various places, such as [NoTracking][github-notracking] and [EnergizedPro][github-energizedpro].
+- _2019-12-22_ Added support for Go modules.
+- _way back_ Support for http proxy/relay, with `-block` parameter to protect local network and/or specific addresses/networks from being accessed.
+
 ## References
 
-* [Go extension library for proxy connections](http://golang.org/x/net/proxy)
-* [What proxies must do](https://www.mnot.net/blog/2011/07/11/what_proxies_must_do)
+- [Go extension library for proxy connections](http://golang.org/x/net/proxy)
+- [What proxies must do](https://www.mnot.net/blog/2011/07/11/what_proxies_must_do)
+- [NoTracking blocklist][github-notracking]
+- [EnergizedPro][github-energizedpro]
+
+[github-notracking]: https://github.com/EnergizedProtection/block "NoTracking blocklist"
+[github-energizedpro]: https://github.com/EnergizedProtection/block "Energized Protection"
