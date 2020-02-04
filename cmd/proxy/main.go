@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"golang.org/x/net/proxy"
-
 	"github.com/cobratbq/httpRelay"
+	"golang.org/x/net/proxy"
 )
 
 func main() {
@@ -19,13 +18,12 @@ func main() {
 	// Prepare proxy dialer
 	var dialer proxy.Dialer = proxy.Direct
 	if *blocklist != "" {
-		listfile, err := os.Open(*blocklist)
-		if err != nil {
-			panic("Failed to access blocklist: " + *blocklist)
-		}
-		blocklistDialer := httpRelay.BlocklistDialer{List: make(map[string]struct{}, 0), Dialer: dialer}
-		if err := blocklistDialer.Load(listfile); err != nil {
-			panic("Failed to load content into blocklist dialer: " + err.Error())
+		blocklistDialer := httpRelay.BlocklistDialer{
+			List:   make(map[string]struct{}, 0),
+			Dialer: dialer}
+		if err := httpRelay.LoadHostsFile(&blocklistDialer, *blocklist); err != nil {
+			os.Stderr.WriteString("Failed to load blocklist: " + err.Error() + "\n")
+			os.Exit(1)
 		}
 		dialer = &blocklistDialer
 	}

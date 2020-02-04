@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"strings"
 
 	"golang.org/x/net/proxy"
@@ -57,5 +58,19 @@ func (b *BlocklistDialer) Load(in io.Reader) error {
 		log.Printf("Skipped %d lines for not using destination address '0.0.0.0'.", skipped)
 	}
 	log.Printf("Loaded %d entries into blocklist.", len(b.List))
+	return nil
+}
+
+// LoadHostsFile loads a `hosts`-formatted blocklist into provided
+// BlocklistDialer.
+func LoadHostsFile(dialer *BlocklistDialer, filename string) error {
+	hostsFile, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer closeLogged(hostsFile, "failed to close hosts file")
+	if err := dialer.Load(hostsFile); err != nil {
+		return err
+	}
 	return nil
 }
