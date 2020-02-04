@@ -39,7 +39,7 @@ func (b *BlocklistDialer) Load(in io.Reader) error {
 			break
 		}
 		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "#") {
+		if line == "" || strings.HasPrefix(line, "#") {
 			// skip comment lines
 			continue
 		}
