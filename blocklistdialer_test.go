@@ -53,6 +53,10 @@ func TestBlocklistDialerLoadHosts(t *testing.T) {
 	if err != ErrBlockedHost {
 		t.FailNow()
 	}
+	_, err = b.Dial("tcp", "hello.world.past")
+	if err != nil {
+		t.FailNow()
+	}
 }
 
 type TestNopDialer struct{}
