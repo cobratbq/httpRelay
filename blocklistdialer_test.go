@@ -59,6 +59,20 @@ func TestBlocklistDialerLoadHosts(t *testing.T) {
 	}
 }
 
+func TestLoadBlocklistFromFile(t *testing.T) {
+	dialer := BlocklistDialer{List: make(map[string]struct{}, 0), Dialer: &TestNopDialer{}}
+	LoadHostsFile(&dialer, "test/hosts")
+	if _, err := dialer.Dial("tcp", "hello.world"); err != ErrBlockedHost {
+		t.Fail()
+	}
+	if _, err := dialer.Dial("tcp", "hello.past"); err != ErrBlockedHost {
+		t.Fail()
+	}
+	if _, err := dialer.Dial("tcp", "hello.future"); err != nil {
+		t.Fail()
+	}
+}
+
 type TestNopDialer struct{}
 
 func (*TestNopDialer) Dial(network, addr string) (net.Conn, error) {

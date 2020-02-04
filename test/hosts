@@ -1,0 +1,6 @@
+127.0.0.1 localhost
+
+# Blocklist starts here ...
+0.0.0.0 hello.world
+0.0.0.0 hello.past
+
