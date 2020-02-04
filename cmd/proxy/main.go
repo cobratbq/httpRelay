@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/cobratbq/httpRelay"
+	"github.com/cobratbq/httprelay"
 	"golang.org/x/net/proxy"
 )
 
@@ -18,10 +18,10 @@ func main() {
 	// Prepare proxy dialer
 	var dialer proxy.Dialer = proxy.Direct
 	if *blocklist != "" {
-		blocklistDialer := httpRelay.BlocklistDialer{
+		blocklistDialer := httprelay.BlocklistDialer{
 			List:   make(map[string]struct{}, 0),
 			Dialer: dialer}
-		if err := httpRelay.LoadHostsFile(&blocklistDialer, *blocklist); err != nil {
+		if err := httprelay.LoadHostsFile(&blocklistDialer, *blocklist); err != nil {
 			os.Stderr.WriteString("Failed to load blocklist: " + err.Error() + "\n")
 			os.Exit(1)
 		}
@@ -29,11 +29,11 @@ func main() {
 	}
 	if *blockedAddrs != "" {
 		// Prepare dialer for blocked addresses
-		perHostDialer := proxy.NewPerHost(dialer, &httpRelay.NopDialer{})
+		perHostDialer := proxy.NewPerHost(dialer, &httprelay.NopDialer{})
 		perHostDialer.AddFromString(*blockedAddrs)
 		dialer = perHostDialer
 	}
 	// Start HTTP proxy server
 	log.Println("HTTP proxy server started on", *listenAddr)
-	log.Println(http.ListenAndServe(*listenAddr, &httpRelay.HTTPProxyHandler{Dialer: dialer}))
+	log.Println(http.ListenAndServe(*listenAddr, &httprelay.HTTPProxyHandler{Dialer: dialer}))
 }

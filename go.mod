@@ -1,4 +1,4 @@
-module github.com/cobratbq/httpRelay
+module github.com/cobratbq/httprelay
 
 go 1.13
 

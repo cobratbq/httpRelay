@@ -1,4 +1,4 @@
-package httpRelay
+package httprelay
 
 // Fuzz is go-fuzz's fuzzing function. Though there is not much to fuzz.
 func Fuzz(data []byte) int {

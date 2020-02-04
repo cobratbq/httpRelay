@@ -1,4 +1,4 @@
-package httpRelay
+package httprelay
 
 import (
 	"bytes"
