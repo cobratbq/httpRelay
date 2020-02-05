@@ -14,7 +14,6 @@ import (
 )
 
 // BlocklistDialer checks the loaded blocklist before dialing.
-// FIXME write unit tests.
 type BlocklistDialer struct {
 	List   map[string]struct{}
 	Dialer proxy.Dialer
@@ -23,6 +22,7 @@ type BlocklistDialer struct {
 // Dial checks the address against the blocklist and if not present uses the
 // provided dialer to dial the address.
 func (b *BlocklistDialer) Dial(network, addr string) (net.Conn, error) {
+	// FIXME check whether or not we need to (possibly) strip the ":80" from the address.
 	if _, ok := b.List[addr]; ok {
 		// FIXME what HTTP status code to use for blocked domains, 404? Need appropriate error code.
 		return nil, ErrBlockedHost
