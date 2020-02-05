@@ -6,8 +6,10 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"sync"
 
 	io_ "github.com/cobratbq/goutils/std/io"
+	http_ "github.com/cobratbq/goutils/std/net/http"
 	"golang.org/x/net/proxy"
 )
 
@@ -112,26 +114,29 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
+	defer io_.CloseLogged(proxyConn, "Failed to close connection to remote location: %+v")
 	// Acquire raw connection to the client
-	clientConn, err := acquireConn(resp)
+	clientInput, clientConn, err := http_.HijackConnection(resp)
 	if err != nil {
-		logError(proxyConn.Close(), "Error while closing proxy connection:")
 		resp.WriteHeader(http.StatusInternalServerError)
 		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
+	defer io_.CloseLogged(clientConn, "Failed to close connection to local client: %+v")
 	// Send 200 Connection established to client to signal tunnel ready
 	// Responses to CONNECT requests MUST NOT contain any body payload.
 	// TODO add additional headers to proxy server's response? (Via)
 	_, err = clientConn.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\n"))
 	if err != nil {
-		logError(proxyConn.Close(), "Error while closing proxy connection:")
 		resp.WriteHeader(http.StatusInternalServerError)
 		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Start copying data from one connection to the other
-	go transfer(proxyConn, clientConn, "client to remote")
-	go transfer(clientConn, proxyConn, "remote to client")
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go transfer(&wg, proxyConn, clientInput)
+	go transfer(&wg, clientConn, proxyConn)
+	wg.Wait()
 	return nil
 }

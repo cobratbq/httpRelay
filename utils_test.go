@@ -1,12 +1,11 @@
 package httprelay
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
 	"log"
-	"net"
 	"net/http"
+	"sync"
 	"testing"
 )
 
@@ -138,7 +137,9 @@ func TestTransfer(t *testing.T) {
 	var src = "Hello world, this is a bunch of data that is being transferred during a CONNECT session."
 	srcBuf := bytes.NewBufferString(src)
 	dstBuf := closeBuffer{}
-	transfer(&dstBuf, srcBuf, "buffer to buffer")
+	var wg sync.WaitGroup
+	wg.Add(1)
+	transfer(&wg, &dstBuf, srcBuf)
 	if dstBuf.String() != src {
 		t.Errorf("Failed to correctly transfer data from source to destination, source: '%s', destination: '%s'.", src, dstBuf.String())
 	}
@@ -148,31 +149,11 @@ func TestTransferError(t *testing.T) {
 	var src = "Hello world, this is a bunch of data that is being transferred during a CONNECT session."
 	srcBuf := bytes.NewBufferString(src)
 	dstBuf := errorBuffer{}
-	transfer(&dstBuf, srcBuf, "buffer to buffer")
+	var wg sync.WaitGroup
+	wg.Add(1)
+	transfer(&wg, &dstBuf, srcBuf)
 	if dstBuf.String() != "Hello worl" {
 		t.Errorf("Expected only part of message 'Hello worl' but got '%s'.", dstBuf.String())
-	}
-}
-
-func TestNonHijackableWriter(t *testing.T) {
-	var writer nonHijackableWriter
-	conn, err := acquireConn(&writer)
-	if err != ErrNonHijackableWriter {
-		t.Error("Expected to receive non-hijackable writer error but got:", err.Error())
-	}
-	if conn != nil {
-		t.Error("Expected to get no connection but got something anyway:", conn)
-	}
-}
-
-func TestHijackableWriter(t *testing.T) {
-	var writer hijackableWriter
-	conn, err := acquireConn(&writer)
-	if err != nil {
-		t.Error("Expected to get no error but got:", err.Error())
-	}
-	if conn == nil {
-		t.Error("Expected to get a connection but got nothing.")
 	}
 }
 
@@ -195,27 +176,4 @@ func (e *errorBuffer) Write(p []byte) (int, error) {
 
 func (*errorBuffer) Close() error {
 	return nil
-}
-
-type nonHijackableWriter struct{}
-
-func (*nonHijackableWriter) Header() http.Header {
-	return nil
-}
-
-func (*nonHijackableWriter) Write([]byte) (int, error) {
-	return 0, nil
-}
-
-func (*nonHijackableWriter) WriteHeader(int) {
-	return
-}
-
-type hijackableWriter struct {
-	nonHijackableWriter
-}
-
-func (*hijackableWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
-	pipeR, _ := net.Pipe()
-	return pipeR, nil, nil
 }

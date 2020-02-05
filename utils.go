@@ -1,13 +1,12 @@
 package httprelay
 
 import (
-	"errors"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 // tokenPatternRegex is the raw string pattern that should be compiled.
@@ -32,10 +31,6 @@ var hopByHopHeaders = map[string]struct{}{
 	"Transfer-Encoding":    struct{}{},
 	"Upgrade":              struct{}{},
 }
-
-// ErrNonHijackableWriter is an error that is returned when the connection
-// cannot be hijacked.
-var ErrNonHijackableWriter = errors.New("failed to acquire raw client connection: writer is not hijackable")
 
 // fullHost appends the default port to the provided host if no port is
 // specified.
@@ -87,31 +82,13 @@ func processConnectionHdr(dropHdrs map[string]struct{}, value string) []string {
 	return bad
 }
 
-// acquireConn acquires the underlying connection by inspecting the
-// ResponseWriter provided.
-func acquireConn(resp http.ResponseWriter) (net.Conn, error) {
-	hijacker, ok := resp.(http.Hijacker)
-	if !ok {
-		return nil, ErrNonHijackableWriter
-	}
-	clientConn, _, err := hijacker.Hijack()
-	return clientConn, err
-}
-
 // transfer may be launched as goroutine. It that copies all content from one
 // connection to the next.
-func transfer(dst io.WriteCloser, src io.Reader, direction string) {
-	_, err := io.Copy(dst, src)
-	if err == nil {
-		log.Println("Connection closed (" + direction + ")")
-	} else {
-		logError(err, "Error occurred while transferring data between connections ("+direction+"):")
-	}
-	logError(dst.Close(), "Error while closing tunnel destination connection:")
-}
-
-func closeLogged(closer io.Closer, message string) {
-	logError(closer.Close(), message)
+func transfer(wg *sync.WaitGroup, dst io.Writer, src io.Reader) {
+	_, _ = io.Copy(dst, src)
+	// Skip all error handling, because we simply cannot distinguish between
+	// expected and unexpected events. Logging this will only produce noise.
+	wg.Done()
 }
 
 // logError logs an error if an error was returned.
