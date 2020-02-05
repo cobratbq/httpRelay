@@ -8,6 +8,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cobratbq/goutils/std/builtin"
+	io_ "github.com/cobratbq/goutils/std/io"
 	"golang.org/x/net/proxy"
 )
 
@@ -38,6 +40,7 @@ func (b *BlocklistDialer) Load(in io.Reader) error {
 		if err == io.EOF {
 			break
 		}
+		builtin.RequireSuccess(err, "Failed to read hosts content: %+v")
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			// skip comment lines
@@ -68,7 +71,7 @@ func LoadHostsFile(dialer *BlocklistDialer, filename string) error {
 	if err != nil {
 		return err
 	}
-	defer closeLogged(hostsFile, "failed to close hosts file")
+	defer io_.CloseLogged(hostsFile, "failed to close hosts file")
 	if err := dialer.Load(hostsFile); err != nil {
 		return err
 	}

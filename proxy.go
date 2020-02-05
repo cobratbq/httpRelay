@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	io_ "github.com/cobratbq/goutils/std/io"
 	"golang.org/x/net/proxy"
 )
 
@@ -61,7 +62,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
-	defer closeLogged(conn, "Error closing connection to socks proxy:")
+	defer io_.CloseLogged(conn, "Error closing connection to socks proxy: %+v")
 	// Prepare request for socks proxy
 	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, bytes.NewReader(body))
 	if err != nil {
@@ -99,7 +100,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 }
 
 func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) error {
-	defer closeLogged(req.Body, "Error while closing request body:")
+	defer io_.CloseLogged(req.Body, "Error while closing request body: %+v")
 	logRequest(req)
 	// Establish connection with socks proxy
 	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
