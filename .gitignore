@@ -2,3 +2,5 @@
 /relay
 /cmd/proxy/proxy
 /cmd/relay/relay
+
+*.code-workspace
