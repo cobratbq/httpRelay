@@ -49,6 +49,7 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 	}
 }
 
+// TODO append body that explains the error as is expected from 5xx http status codes
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
 	// TODO what to do when body of request is very large?
 	body, err := ioutil.ReadAll(req.Body)
@@ -64,7 +65,6 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		return err
 	} else if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	defer io_.CloseLogged(conn, "Error closing connection to socks proxy: %+v")
@@ -72,7 +72,6 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, bytes.NewReader(body))
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Transfer headers to proxy request
@@ -84,7 +83,6 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Send request to socks proxy
 	if err = proxyReq.Write(conn); err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Read proxy response
@@ -92,7 +90,6 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	proxyResp, err := http.ReadResponse(proxyRespReader, proxyReq)
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Transfer headers to client response
@@ -104,6 +101,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	return err
 }
 
+// TODO append body that explains the error as is expected from 5xx http status codes
 func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) error {
 	defer io_.CloseLogged(req.Body, "Error while closing request body: %+v")
 	logRequest(req)
@@ -114,7 +112,6 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 		return err
 	} else if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	defer io_.CloseLogged(proxyConn, "Failed to close connection to remote location: %+v")
@@ -122,7 +119,6 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 	clientInput, clientConn, err := http_.HijackConnection(resp)
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	defer io_.CloseLogged(clientConn, "Failed to close connection to local client: %+v")
@@ -132,7 +128,6 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 	_, err = clientConn.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\n"))
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		// TODO append body that explains the error as is expected from 5xx http status codes
 		return err
 	}
 	// Start copying data from one connection to the other
