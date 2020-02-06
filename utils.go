@@ -2,7 +2,6 @@ package httprelay
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -89,16 +88,4 @@ func transfer(wg *sync.WaitGroup, dst io.Writer, src io.Reader) {
 	// Skip all error handling, because we simply cannot distinguish between
 	// expected and unexpected events. Logging this will only produce noise.
 	wg.Done()
-}
-
-// logError logs an error if an error was returned.
-func logError(err error, prefix string) {
-	if err != nil {
-		log.Println(prefix, err.Error())
-	}
-}
-
-// log the request
-func logRequest(req *http.Request) {
-	log.Println(req.Proto, req.Method, req.Host)
 }

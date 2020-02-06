@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"sync"
 
@@ -43,13 +44,15 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 	default:
 		err = h.processRequest(resp, req)
 	}
-	logError(err, "Error serving proxy relay:")
+	if err != nil {
+		log.Println("Error serving proxy relay:", err.Error())
+	}
 }
 
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
 	// TODO what to do when body of request is very large?
 	body, err := ioutil.ReadAll(req.Body)
-	logError(req.Body.Close(), "Failed to close request body:")
+	io_.CloseLogged(req.Body, "Failed to close request body: %+v")
 	// The request body is only closed in certain error cases. In other cases, we
 	// let body be closed by during processing of request to remote host.
 	logRequest(req)
@@ -97,7 +100,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Verification of response is already handled by net/http library.
 	resp.WriteHeader(proxyResp.StatusCode)
 	_, err = io.Copy(resp, proxyResp.Body)
-	logError(proxyResp.Body.Close(), "Error closing response body:")
+	io_.CloseLogged(proxyResp.Body, "Error closing response body: %+v")
 	return err
 }
 
@@ -139,4 +142,9 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 	go transfer(&wg, clientConn, proxyConn)
 	wg.Wait()
 	return nil
+}
+
+// log the request
+func logRequest(req *http.Request) {
+	log.Println(req.Proto, req.Method, req.Host)
 }
