@@ -45,13 +45,6 @@ func TestFullHost(t *testing.T) {
 	}
 }
 
-func TestLogError(t *testing.T) {
-	logError(nil, "")
-	logError(errors.New("test error"), "")
-	logError(nil, "my prefix")
-	logError(errors.New("test error"), "my prefix")
-}
-
 func TestLogRequest(t *testing.T) {
 	req := http.Request{Method: "GET", Host: "localhost:1414", Proto: "HTTP/1.1"}
 	logRequest(&req)
