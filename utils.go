@@ -21,14 +21,14 @@ const connectionHeader = "Connection"
 // headers that are dedicated to a single connection and should not copied to
 // the SOCKS proxy server connection
 var hopByHopHeaders = map[string]struct{}{
-	connectionHeader:       struct{}{},
-	"Keep-Alive":           struct{}{},
-	"Proxy-Authorization":  struct{}{},
-	"Proxy-Authentication": struct{}{},
-	"TE":                   struct{}{},
-	"Trailer":              struct{}{},
-	"Transfer-Encoding":    struct{}{},
-	"Upgrade":              struct{}{},
+	connectionHeader:       {},
+	"Keep-Alive":           {},
+	"Proxy-Authorization":  {},
+	"Proxy-Authentication": {},
+	"TE":                   {},
+	"Trailer":              {},
+	"Transfer-Encoding":    {},
+	"Upgrade":              {},
 }
 
 // fullHost appends the default port to the provided host if no port is
