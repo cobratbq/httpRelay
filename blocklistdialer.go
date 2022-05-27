@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cobratbq/goutils/std/builtin"
+	"github.com/cobratbq/goutils/assert"
 	io_ "github.com/cobratbq/goutils/std/io"
 	"golang.org/x/net/proxy"
 )
@@ -41,7 +41,7 @@ func (b *BlocklistDialer) Load(in io.Reader) error {
 		if err == io.EOF {
 			break
 		}
-		builtin.RequireSuccess(err, "Failed to read hosts content: %+v")
+		assert.RequireSuccess(err, "Failed to read hosts content: %+v")
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			// skip comment lines
