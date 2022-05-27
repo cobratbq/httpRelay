@@ -2,6 +2,8 @@ github.com/cobratbq/goutils v0.0.0-20200304172020-02a617e3dbeb h1:GbaFtZ6E5kYIoE
 github.com/cobratbq/goutils v0.0.0-20200304172020-02a617e3dbeb/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
 github.com/cobratbq/goutils v0.0.0-20220527214328-ac007d319d8c h1:cT2CPOGd9/HB66haiotp9crTMspQh5TMlpPMFN4boPM=
 github.com/cobratbq/goutils v0.0.0-20220527214328-ac007d319d8c/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
+github.com/cobratbq/goutils v0.0.0-20220527231830-1c0e41163533 h1:7cDdrtzCR0oH47Z6kmedKxd10vf9neZhsW9eMpE0QGU=
+github.com/cobratbq/goutils v0.0.0-20220527231830-1c0e41163533/go.mod h1:mez72GoFhK6yia9KYon4XjM2HEmFG8ieK9ipzY2oVI0=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20200202094626-16171245cfb2 h1:CCH4IOTTfewWjGOlSp+zGcjutRKlBEZQ6wTn8ozI/nI=
 golang.org/x/net v0.0.0-20200202094626-16171245cfb2/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=

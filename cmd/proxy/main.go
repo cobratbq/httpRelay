@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"os"
 
+	osutils "github.com/cobratbq/goutils/std/os"
 	"github.com/cobratbq/httprelay"
 	"golang.org/x/net/proxy"
 )
@@ -22,8 +22,7 @@ func main() {
 			List:   make(map[string]struct{}, 0),
 			Dialer: dialer}
 		if err := httprelay.LoadHostsFile(&blocklistDialer, *blocklist); err != nil {
-			os.Stderr.WriteString("Failed to load blocklist: " + err.Error() + "\n")
-			os.Exit(1)
+			osutils.ExitWithError(1, "Failed to load blocklist: "+err.Error())
 		}
 		dialer = &blocklistDialer
 	}
