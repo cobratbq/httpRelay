@@ -7,23 +7,17 @@ import (
 	"net/http"
 	"sync"
 	"testing"
+
+	assert "github.com/cobratbq/goutils/std/testing"
 )
 
 func TestProcessConnectionHdr(t *testing.T) {
 	headers := map[string]struct{}{}
 	processConnectionHdr(headers, "Keep-Alive, Foo ,Bar")
-	if len(headers) != 3 {
-		t.Error("Expected exactly 3 entries in headers map.")
-	}
-	if _, ok := headers["Keep-Alive"]; !ok {
-		t.Error("Expected header Keep-Alive in map.")
-	}
-	if _, ok := headers["Foo"]; !ok {
-		t.Error("Expected header Foo in map.")
-	}
-	if _, ok := headers["Bar"]; !ok {
-		t.Error("Expected header Bar in map.")
-	}
+	assert.Equal(t, len(headers), 3)
+	assert.ElementPresent(t, headers, "Keep-Alive")
+	assert.ElementPresent(t, headers, "Foo")
+	assert.ElementPresent(t, headers, "Bar")
 }
 
 func TestFullHost(t *testing.T) {
@@ -39,9 +33,7 @@ func TestFullHost(t *testing.T) {
 	var result string
 	for src, dst := range tests {
 		result = fullHost(src)
-		if result != dst {
-			t.Errorf("Expected '%s' to result in '%s', but instead is '%s'.", src, dst, result)
-		}
+		assert.Equal(t, result, dst)
 	}
 }
 
@@ -54,39 +46,21 @@ func TestProcessConnectionHdrs(t *testing.T) {
 	var hdrs = map[string]struct{}{}
 	var val = "Keep-Alive  ,  \tFoo,bar"
 	processConnectionHdr(hdrs, val)
-	if len(hdrs) != 3 {
-		t.Error("Expected 3 header entries.")
-	}
-	var ok bool
-	if _, ok = hdrs["Keep-Alive"]; !ok {
-		t.Error("Expected to find header Keep-Alive.")
-	}
-	if _, ok = hdrs["Foo"]; !ok {
-		t.Error("Expected to find header Foo.")
-	}
-	if _, ok = hdrs["bar"]; !ok {
-		t.Error("Expected to find header bar.")
-	}
+	assert.Equal(t, len(hdrs), 3)
+	assert.ElementPresent(t, hdrs, "Keep-Alive")
+	assert.ElementPresent(t, hdrs, "Foo")
+	assert.ElementPresent(t, hdrs, "bar")
 }
 
 func TestProcessConnectionHdrsBad(t *testing.T) {
 	var hdrs = map[string]struct{}{}
 	var val = "Illegal spaces, Capiche?, close"
 	processConnectionHdr(hdrs, val)
-	if len(hdrs) != 1 {
-		t.Error("Expected only 1 header, since others were bad.")
-	}
+	assert.Equal(t, len(hdrs), 1)
 	log.Printf("Headers: %#v\n", hdrs)
-	var ok bool
-	if _, ok = hdrs["Illegal spaces"]; ok {
-		t.Error("Header with spaces should not be in the headers map.")
-	}
-	if _, ok = hdrs["Capiche?"]; ok {
-		t.Error("Header with bad chars should not be in the headers map.")
-	}
-	if _, ok = hdrs["close"]; !ok {
-		t.Error("Expected the one correct header 'close' to be in the map.")
-	}
+	assert.ElementAbsent(t, hdrs, "Illegal spaces")
+	assert.ElementAbsent(t, hdrs, "Capiche?")
+	assert.ElementPresent(t, hdrs, "close")
 }
 
 func TestCopyHeaders(t *testing.T) {
@@ -101,28 +75,21 @@ func TestCopyHeaders(t *testing.T) {
 	src.Add("Foo", "Bar")
 	var dst = http.Header{}
 	copyHeaders(dst, src)
-	var ok bool
 	var k string
 	if len(dst) != 3 {
 		t.Errorf("Expected exactly 2 headers, but found a different number: %#v\n", dst)
 	}
 	for k = range hopByHopHeaders {
 		// check simple dropped headers
-		if _, ok = dst[k]; ok {
-			t.Error("Did not expect header in destination map. It should be dropped:", k)
-		}
+		assert.KeyAbsent(t, dst, k)
 	}
 	for _, k = range []string{"Connection", "Keep-Alive", "Foo"} {
 		// check special treatment of Connection header and its values
-		if _, ok = dst[k]; ok {
-			t.Error("Did not expect Connection header of listings in destination map. It should be dropped:", k)
-		}
+		assert.KeyAbsent(t, dst, k)
 	}
 	for _, k = range []string{"Content-Type", "Content-Encoding", "Via"} {
 		// check remaining headers
-		if _, ok = dst[k]; !ok {
-			t.Error("Expected header in destination map:", k)
-		}
+		assert.KeyPresent(t, dst, k)
 	}
 }
 
@@ -133,9 +100,7 @@ func TestTransfer(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	transfer(&wg, &dstBuf, srcBuf)
-	if dstBuf.String() != src {
-		t.Errorf("Failed to correctly transfer data from source to destination, source: '%s', destination: '%s'.", src, dstBuf.String())
-	}
+	assert.Equal(t, dstBuf.String(), src)
 }
 
 func TestTransferError(t *testing.T) {
@@ -145,9 +110,7 @@ func TestTransferError(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	transfer(&wg, &dstBuf, srcBuf)
-	if dstBuf.String() != "Hello worl" {
-		t.Errorf("Expected only part of message 'Hello worl' but got '%s'.", dstBuf.String())
-	}
+	assert.Equal(t, dstBuf.String(), "Hello worl")
 }
 
 type closeBuffer struct {

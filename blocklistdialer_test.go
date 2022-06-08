@@ -4,15 +4,12 @@ import (
 	"bytes"
 	"net"
 	"testing"
+
+	assert "github.com/cobratbq/goutils/std/testing"
 )
 
 func TestBlocklistDialerNilDialer(t *testing.T) {
-	defer func() {
-		if recover() != nil {
-			return
-		}
-		t.FailNow()
-	}()
+	defer assert.RequirePanic(t)
 	b := BlocklistDialer{List: make(map[string]struct{}, 0), Dialer: nil}
 	b.Dial("tcp", "hello.world:80")
 	t.FailNow()
@@ -20,8 +17,7 @@ func TestBlocklistDialerNilDialer(t *testing.T) {
 
 func TestBlocklistDialerDirectDialer(t *testing.T) {
 	b := BlocklistDialer{List: make(map[string]struct{}, 0), Dialer: &TestNopDialer{}}
-	_, err := b.Dial("tcp", "hello.world:80")
-	if err != nil {
+	if _, err := b.Dial("tcp", "hello.world:80"); err != nil {
 		t.FailNow()
 	}
 }
@@ -30,8 +26,7 @@ func TestBlocklistDialerBlockedAddress(t *testing.T) {
 	b := BlocklistDialer{List: map[string]struct{}{
 		"hello.world": struct{}{},
 	}, Dialer: &TestNopDialer{}}
-	_, err := b.Dial("tcp", "hello.world:80")
-	if err == ErrBlockedHost {
+	if _, err := b.Dial("tcp", "hello.world:80"); err == ErrBlockedHost {
 		return
 	}
 	t.FailNow()
@@ -41,20 +36,16 @@ func TestBlocklistDialerLoadHosts(t *testing.T) {
 	hostsFile := []byte("127.0.0.1 localhost\n0.0.0.0 hello.world\n# the next line tests 2 host names for one destination address\n0.0.0.0 hello.world.too hello.world.future\n")
 	b := BlocklistDialer{List: make(map[string]struct{}, 0), Dialer: &TestNopDialer{}}
 	b.Load(bytes.NewReader(hostsFile))
-	_, err := b.Dial("tcp", "hello.world:80")
-	if err != ErrBlockedHost {
+	if _, err := b.Dial("tcp", "hello.world:80"); err != ErrBlockedHost {
 		t.FailNow()
 	}
-	_, err = b.Dial("tcp", "hello.world.too:443")
-	if err != ErrBlockedHost {
+	if _, err := b.Dial("tcp", "hello.world.too:443"); err != ErrBlockedHost {
 		t.FailNow()
 	}
-	_, err = b.Dial("tcp", "hello.world.future:443")
-	if err != ErrBlockedHost {
+	if _, err := b.Dial("tcp", "hello.world.future:443"); err != ErrBlockedHost {
 		t.FailNow()
 	}
-	_, err = b.Dial("tcp", "hello.world.past:80")
-	if err != nil {
+	if _, err := b.Dial("tcp", "hello.world.past:80"); err != nil {
 		t.FailNow()
 	}
 }

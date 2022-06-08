@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"net/http"
 	"testing"
+
+	assert "github.com/cobratbq/goutils/std/testing"
 )
 
 // These tests are are based on instructions in the blog post
@@ -39,9 +41,7 @@ Host: www.example.com
 `)
 	requestBufRdr := bufio.NewReader(requestRdr)
 	req, err := http.ReadRequest(requestBufRdr)
-	if err != nil {
-		t.Fatal("Error reading request:", err.Error())
-	}
+	assert.Nil(t, err)
 	// Verify behaviour reading a response by providing corrupted response content
 	responseRdr := bytes.NewBufferString(`HTTP/1.1 200 OK
 Content-Type: text/html; charset=utf-8
@@ -51,9 +51,7 @@ Content-Length: 20
 abcdefghij`)
 	responseBufRdr := bufio.NewReader(responseRdr)
 	_, err = http.ReadResponse(responseBufRdr, req)
-	if err == nil {
-		t.Fatal("Expected an error because of multiple Content-Length header entries, but got nothing.")
-	}
+	assert.NotNil(t, err)
 }
 
 // TestAssumptionBadFraminingContentLengthWithChunked verifies that the standard
@@ -71,9 +69,7 @@ Host: www.example.com
 `)
 	requestBufRdr := bufio.NewReader(requestRdr)
 	req, err := http.ReadRequest(requestBufRdr)
-	if err != nil {
-		t.Fatal("Error reading request:", err.Error())
-	}
+	assert.Nil(t, err)
 	// Verify behaviour reading a response by providing corrupted response content
 	responseRdr := bytes.NewBufferString(`HTTP/1.1 200 OK
 Content-Type: text/html; charset=utf-8
@@ -83,15 +79,9 @@ Transfer-Encoding: chunked
 abcdefghij`)
 	responseBufRdr := bufio.NewReader(responseRdr)
 	resp, err := http.ReadResponse(responseBufRdr, req)
-	if err != nil {
-		t.Fatal("Unexpected error:", err.Error())
-	}
-	if resp.ContentLength != -1 {
-		t.Errorf("Expected auto-correction of Content-Length to -1, but was %d\n", resp.ContentLength)
-	}
-	if resp.TransferEncoding[0] != "chunked" {
-		t.Error("Expected Transfer-Encoding: chunked but got '", resp.TransferEncoding[0], "'")
-	}
+	assert.Nil(t, err)
+	assert.Equal(t, resp.ContentLength, -1)
+	assert.Equal(t, resp.TransferEncoding[0], "chunked")
 }
 
 // TestCorrectlyReadRoutingFromRequest tests whether conflicting information
@@ -106,13 +96,7 @@ Host: www.example.com:8000
 `)
 	requestBufRdr := bufio.NewReader(requestRdr)
 	req, err := http.ReadRequest(requestBufRdr)
-	if err != nil {
-		t.Fatal("Unexpected error reading request:", err.Error())
-	}
-	if req.Host != "example.net" {
-		t.Errorf("Expected to automatically fix Host header to 'example.net' but was still '%s'\n", req.Host)
-	}
-	if req.RequestURI != "http://example.net/foo" {
-		t.Error("Expected RequestURI to be http://example.net/foo but was", req.RequestURI)
-	}
+	assert.Nil(t, err)
+	assert.Equal(t, req.Host, "example.net")
+	assert.Equal(t, req.RequestURI, "http://example.net/foo")
 }
