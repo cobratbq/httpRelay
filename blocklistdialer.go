@@ -73,8 +73,5 @@ func LoadHostsFile(dialer *BlocklistDialer, filename string) error {
 		return err
 	}
 	defer io_.CloseLogged(hostsFile, "failed to close hosts file")
-	if err := dialer.Load(hostsFile); err != nil {
-		return err
-	}
-	return nil
+	return dialer.Load(hostsFile)
 }
