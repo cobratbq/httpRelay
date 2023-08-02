@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"sync"
@@ -52,7 +51,7 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 // TODO append body that explains the error as is expected from 5xx http status codes
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
 	// TODO what to do when body of request is very large?
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	io_.CloseLogged(req.Body, "Failed to close request body: %+v")
 	// The request body is only closed in certain error cases. In other cases, we
 	// let body be closed by during processing of request to remote host.

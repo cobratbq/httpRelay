@@ -41,7 +41,7 @@ func (b *BlocklistDialer) Load(in io.Reader) error {
 		if err == io.EOF {
 			break
 		}
-		assert.RequireSuccess(err, "Failed to read hosts content: %+v")
+		assert.Success(err, "Failed to read hosts content: %+v")
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			// skip comment lines
