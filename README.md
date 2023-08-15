@@ -6,11 +6,11 @@ Single-purpose HTTP proxy relaying requests to an existing (external) SOCKS 5 pr
 
 ## Usage
 
-`./relay -listen :8080 -socks localhost:8000 -block "127.0.0.1,localhost,192.168/16"`
+`./relay -listen :8080 -socks localhost:8000 -socks-user socksUsername -socks-pass socksPassword -block "127.0.0.1,localhost,192.168/16"`
 
 Start a HTTP relay proxy that listens on port 8080 of every interface and connects to a SOCKS proxy server on localhost port 8000 for relaying your requests. Block requests that attempt to access 127.0.0.1, 'localhost' or any address in the ip range 192.168.0.0-192.168.255.255.
 
-`./proxy -listen localhost:8080 -block "127.0.0.1,localhost,192.168/16"`
+`./proxy -listen localhost:8080 -block "127.0.0.1,localhost,192.168.0.1/16"`
 
 Start a (tiny) generic HTTP proxy server that listens on port 8080 of 'localhost' and proxies requests directly to the internet. Block any requests to 127.0.0.1, 'localhost' or any address in the ip range 192.168.0.0-192.168.255.255.
 
@@ -25,6 +25,8 @@ The program arguments that are available to both programs.
 The following program arguments are applicable to `relay` only.
 
 - `-socks` the SOCKS proxy to which to forward http proxy requests.
+- `-socks-user` the username of SOCKS5 proxy server.
+- `-socks-pass` the password of SOCKS5 proxy server.
 
 ## Building
 
@@ -34,6 +36,7 @@ This build will use the build flag `-tags netgo` to make the result independent 
 
 ## Changelog
 
+- _2023-08-15_ Command-line flags to provide username/password authentication for SOCKS5 proxy (relay) by [developbranch-cn](<https://github.com/developbranch-cn>).
 - _2020-02-04_ Added support for loading in blocklists that are checked as part of the proxying process.  
   The program argument `-blocklist <filename>` allows loading hostname blocklists formatted as the OS `hosts` file. Blocklists in these formats can be downloaded from various places, such as [NoTracking][github-notracking] and [EnergizedPro][github-energizedpro].
 - _2019-12-22_ Added support for Go modules.
