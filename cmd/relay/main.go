@@ -12,8 +12,8 @@ import (
 
 func main() {
 	socksAddr := flag.String("socks", "localhost:8000", "Address and port of SOCKS5 proxy server.")
-	socksUsername := flag.String("socks-user", "", "Username of SOCKS5 proxy server.")
-	socksPassword := flag.String("socks-pass", "", "Password of SOCKS5 proxy server.")
+	socksUsername := flag.String("socks-user", "", "Username for accessing the SOCKS5 proxy server.")
+	socksPassword := flag.String("socks-pass", "", "Password for accessing the SOCKS5 proxy server.")
 	listenAddr := flag.String("listen", ":8080", "Listening address and port for HTTP relay proxy.")
 	blockedAddrs := flag.String("block", "", "Comma-separated list of blocked host names, zone names, ip addresses and CIDR addresses.")
 	blocklist := flag.String("blocklist", "", "Filename referring to a hosts-formatted blocklist. (e.g. from energized.pro)")
