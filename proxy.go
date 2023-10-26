@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"log"
 	"net/http"
 	"sync"
 
@@ -39,12 +38,13 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 	var err error
 	switch req.Method {
 	case "CONNECT":
+		// TODO Go 1.20 added an OnProxyConnect callback for use by proxies. This probably voids the use for connection hijacking. Investigate and possibly use.
 		err = h.handleConnect(resp, req)
 	default:
 		err = h.processRequest(resp, req)
 	}
 	if err != nil {
-		log.Println("Error serving proxy relay:", err.Error())
+		logWarning("Error serving proxy relay:", err.Error())
 	}
 }
 
@@ -124,21 +124,15 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 	// Send 200 Connection established to client to signal tunnel ready
 	// Responses to CONNECT requests MUST NOT contain any body payload.
 	// TODO add additional headers to proxy server's response? (Via)
-	_, err = clientConn.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\n"))
-	if err != nil {
+	if _, err = clientConn.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\n")); err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 	// Start copying data from one connection to the other
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go transfer(&wg, proxyConn, clientInput)
-	go transfer(&wg, clientConn, proxyConn)
+	go io_.Transfer(&wg, proxyConn, clientInput)
+	go io_.Transfer(&wg, clientConn, proxyConn)
 	wg.Wait()
 	return nil
-}
-
-// log the request
-func logRequest(req *http.Request) {
-	log.Println(req.Proto, req.Method, req.Host)
 }

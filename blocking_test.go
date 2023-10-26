@@ -5,6 +5,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/cobratbq/goutils/std/builtin/set"
 	assert "github.com/cobratbq/goutils/std/testing"
 )
 
@@ -23,9 +24,7 @@ func TestBlocklistDialerDirectDialer(t *testing.T) {
 }
 
 func TestBlocklistDialerBlockedAddress(t *testing.T) {
-	b := BlocklistDialer{List: map[string]struct{}{
-		"hello.world": struct{}{},
-	}, Dialer: &TestNopDialer{}}
+	b := BlocklistDialer{List: set.Create("hello.world"), Dialer: &TestNopDialer{}}
 	if _, err := b.Dial("tcp", "hello.world:80"); err == ErrBlockedHost {
 		return
 	}
@@ -52,7 +51,7 @@ func TestBlocklistDialerLoadHosts(t *testing.T) {
 
 func TestLoadBlocklistFromFile(t *testing.T) {
 	dialer := BlocklistDialer{List: make(map[string]struct{}, 0), Dialer: &TestNopDialer{}}
-	LoadHostsFile(&dialer, "test/hosts")
+	loadHostsFile(&dialer, "test/hosts")
 	if _, err := dialer.Dial("tcp", "hello.world:443"); err != ErrBlockedHost {
 		t.Fail()
 	}
