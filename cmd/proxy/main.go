@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	"net/http"
+	"syscall"
 
+	"github.com/cobratbq/goutils/assert"
+	net_ "github.com/cobratbq/goutils/std/net"
 	os_ "github.com/cobratbq/goutils/std/os"
 	"github.com/cobratbq/goutils/std/strings"
 	"github.com/cobratbq/httprelay"
@@ -31,7 +35,11 @@ func main() {
 			strings.OrDefault(*blockAddrs, "<none>"))
 		dialer = httprelay.WrapPerHostBlocking(dialer, *blockLocal, *blockAddrs)
 	}
+
 	// Start HTTP proxy server
+	listener, listenErr := net_.ListenWithOptions(context.Background(), "tcp", *listenAddr,
+		map[net_.Option]int{{Level: syscall.SOL_IP, Option: syscall.IP_FREEBIND}: 1})
+	assert.Success(listenErr, "Failed to open local address for proxy")
 	log.Println("HTTP proxy server started on", *listenAddr)
-	log.Println(http.ListenAndServe(*listenAddr, &httprelay.HTTPProxyHandler{Dialer: dialer}))
+	log.Println(http.Serve(listener, &httprelay.HTTPProxyHandler{Dialer: dialer}))
 }
