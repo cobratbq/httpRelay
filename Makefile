@@ -11,11 +11,11 @@ library:
 
 .PHONY: proxy
 proxy: library
-	go build -tags netgo ./cmd/proxy
+	go build -buildmode pie -tags netgo ./cmd/proxy
 
 .PHONY: relay
 relay: library
-	go build -tags netgo ./cmd/relay
+	go build -buildmode pie -tags netgo ./cmd/relay
 
 .PHONY: test
 test: library
