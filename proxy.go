@@ -40,6 +40,7 @@ func NewHandler(dialer proxy.Dialer, useragent string) HTTPProxyHandler {
 	transport.DisableKeepAlives = true
 	transport.MaxIdleConns = 0
 	transport.MaxIdleConnsPerHost = 0
+	transport.MaxConnsPerHost = 0
 	return HTTPProxyHandler{
 		Dialer:    dialer,
 		UserAgent: useragent,
