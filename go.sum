@@ -2,3 +2,5 @@ github.com/cobratbq/goutils v0.0.0-20230802185225-d540f72572df h1:UIzkAa2q6TTVnC
 github.com/cobratbq/goutils v0.0.0-20230802185225-d540f72572df/go.mod h1:ZQi9/vUKrqj15zquA2rL9QRXIumlYduVScl5lvS5fsc=
 golang.org/x/net v0.17.0 h1:pVaXccu2ozPjCXewfr1S7xza/zcXTity9cCdXQYSjIM=
 golang.org/x/net v0.17.0/go.mod h1:NxSsAGuq816PNPmqtQdLE42eU2Fs7NoRIZrHJAlaCOE=
+golang.org/x/net v0.20.0 h1:aCL9BSgETF1k+blQaYUBx9hJ9LOGP3gAVemcZlf1Kpo=
+golang.org/x/net v0.20.0/go.mod h1:z8BVo6PvndSri0LbOE3hAn0apkU+1YvI6E70E9jsnvY=

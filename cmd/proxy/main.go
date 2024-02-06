@@ -40,6 +40,8 @@ func main() {
 	listener, listenErr := net_.ListenWithOptions(context.Background(), "tcp", *listenAddr,
 		map[net_.Option]int{{Level: syscall.SOL_IP, Option: syscall.IP_FREEBIND}: 1})
 	assert.Success(listenErr, "Failed to open local address for proxy")
+	handler := httprelay.NewHandler(dialer, "")
+	server := http.Server{Handler: &handler}
 	log.Println("HTTP proxy server started on", *listenAddr)
-	log.Println(http.Serve(listener, &httprelay.HTTPProxyHandler{Dialer: dialer}))
+	log.Println(server.Serve(listener))
 }

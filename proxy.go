@@ -32,6 +32,21 @@ type HTTPProxyHandler struct {
 	// Dialer is the dialer for connecting to the SOCKS5 proxy.
 	Dialer    proxy.Dialer
 	UserAgent string
+	client    http.Client
+}
+
+func NewHandler(dialer proxy.Dialer, useragent string) HTTPProxyHandler {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DisableKeepAlives = true
+	transport.MaxIdleConns = 0
+	transport.MaxIdleConnsPerHost = 0
+	return HTTPProxyHandler{
+		Dialer:    dialer,
+		UserAgent: useragent,
+		client: http.Client{
+			Transport: transport,
+		},
+	}
 }
 
 func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
