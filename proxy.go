@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"net"
 	"net/http"
 	"sync"
 
@@ -39,14 +38,7 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 	switch req.Method {
 	case "CONNECT":
 		// TODO Go 1.20 added an OnProxyConnect callback for use by proxies. This probably voids the use for connection hijacking. Investigate and possibly use.
-		// Acquire raw connection to the client
-		clientInput, clientConn, err := http_.HijackConnection(resp)
-		if err != nil {
-			resp.WriteHeader(http.StatusInternalServerError)
-			logWarning("Error serving proxy request:", err)
-			return
-		}
-		go h.handleConnect(resp, req, clientInput, clientConn)
+		go h.handleConnect(resp, req)
 	default:
 		go h.processRequest(resp, req)
 	}
@@ -112,9 +104,8 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 }
 
 // TODO append body that explains the error as is expected from 5xx http status codes
-func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request, clientInput io.Reader, clientConn net.Conn) {
+func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) {
 	defer io_.CloseLogged(req.Body, "Error while closing request body: %+v")
-	defer io_.CloseLogged(clientConn, "Failed to close connection to local client: %+v")
 	logRequest(req)
 	// Establish connection with socks proxy
 	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
@@ -128,6 +119,14 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 		return
 	}
 	defer io_.CloseLogged(proxyConn, "Failed to close connection to remote location: %+v")
+	// Acquire raw connection to the client
+	clientInput, clientConn, err := http_.HijackConnection(resp)
+	if err != nil {
+		resp.WriteHeader(http.StatusInternalServerError)
+		logWarning("Error serving proxy request:", err)
+		return
+	}
+	defer io_.CloseLogged(clientConn, "Failed to close connection to local client: %+v")
 	// Send 200 Connection established to client to signal tunnel ready
 	// Responses to CONNECT requests MUST NOT contain any body payload.
 	// TODO add additional headers to proxy server's response? (Via)
