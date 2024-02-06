@@ -35,17 +35,21 @@ type HTTPProxyHandler struct {
 }
 
 func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	var err error
 	switch req.Method {
 	case "CONNECT":
 		// TODO Go 1.20 added an OnProxyConnect callback for use by proxies. This probably voids the use for connection hijacking. Investigate and possibly use.
-		go h.handleConnect(resp, req)
+		err = h.handleConnect(resp, req)
 	default:
-		go h.processRequest(resp, req)
+		err = h.processRequest(resp, req)
+	}
+	if err != nil {
+		logWarning("Error serving proxy relay:", err.Error())
 	}
 }
 
 // TODO append body that explains the error as is expected from 5xx http status codes
-func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) {
+func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
 	// TODO what to do when body of request is very large?
 	body, err := io.ReadAll(req.Body)
 	io_.CloseLogged(req.Body, "Failed to close request body: %+v")
@@ -57,20 +61,17 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	conn, err := h.Dialer.Dial("tcp", fullHost(req.Host))
 	if err == ErrBlockedHost {
 		resp.WriteHeader(http.StatusForbidden)
-		logWarning("Error serving proxy request:", err)
-		return
+		return err
 	} else if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		logWarning("Error serving proxy request:", err)
-		return
+		return err
 	}
 	defer io_.CloseLogged(conn, "Error closing connection to socks proxy: %+v")
 	// Prepare request for socks proxy
 	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, bytes.NewReader(body))
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		logWarning("Error serving proxy request:", err)
-		return
+		return err
 	}
 	// Transfer headers to proxy request
 	copyHeaders(proxyReq.Header, req.Header)
@@ -81,16 +82,14 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Send request to socks proxy
 	if err = proxyReq.Write(conn); err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		logWarning("Error serving proxy request:", err)
-		return
+		return err
 	}
 	// Read proxy response
 	proxyRespReader := bufio.NewReader(conn)
 	proxyResp, err := http.ReadResponse(proxyRespReader, proxyReq)
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		logWarning("Error serving proxy request:", err)
-		return
+		return err
 	}
 	// Transfer headers to client response
 	copyHeaders(resp.Header(), proxyResp.Header)
@@ -98,33 +97,28 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	resp.WriteHeader(proxyResp.StatusCode)
 	_, err = io.Copy(resp, proxyResp.Body)
 	io_.CloseLogged(proxyResp.Body, "Error closing response body: %+v")
-	if err != nil {
-		logWarning("Error serving proxy request:", err)
-	}
+	return err
 }
 
 // TODO append body that explains the error as is expected from 5xx http status codes
-func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) {
+func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) error {
 	defer io_.CloseLogged(req.Body, "Error while closing request body: %+v")
 	logRequest(req)
 	// Establish connection with socks proxy
 	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
 	if err == ErrBlockedHost {
 		resp.WriteHeader(http.StatusForbidden)
-		logWarning("Error serving proxy request:", err)
-		return
+		return err
 	} else if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		logWarning("Error serving proxy request:", err)
-		return
+		return err
 	}
 	defer io_.CloseLogged(proxyConn, "Failed to close connection to remote location: %+v")
 	// Acquire raw connection to the client
 	clientInput, clientConn, err := http_.HijackConnection(resp)
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		logWarning("Error serving proxy request:", err)
-		return
+		return err
 	}
 	defer io_.CloseLogged(clientConn, "Failed to close connection to local client: %+v")
 	// Send 200 Connection established to client to signal tunnel ready
@@ -132,8 +126,7 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 	// TODO add additional headers to proxy server's response? (Via)
 	if _, err = clientConn.Write([]byte("HTTP/1.0 200 Connection established\r\n\r\n")); err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		logWarning("Error serving proxy request:", err)
-		return
+		return err
 	}
 	// Start copying data from one connection to the other
 	var wg sync.WaitGroup
@@ -141,4 +134,5 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 	go io_.Transfer(&wg, proxyConn, clientInput)
 	go io_.Transfer(&wg, clientConn, proxyConn)
 	wg.Wait()
+	return nil
 }
