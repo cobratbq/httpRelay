@@ -16,9 +16,10 @@ import (
 
 func DirectDialer() net.Dialer {
 	return net.Dialer{
-		Timeout:   0,
-		Deadline:  time.Time{},
-		KeepAlive: -1,
+		Timeout:       0,
+		Deadline:      time.Time{},
+		KeepAlive:     -1,
+		FallbackDelay: -1,
 	}
 }
 
