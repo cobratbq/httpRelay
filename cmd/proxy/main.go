@@ -22,7 +22,8 @@ func main() {
 	blocklist := flag.String("blocklist", "", "Filename referring to a hosts-formatted blocklist.")
 	flag.Parse()
 	// Prepare proxy dialer
-	var dialer proxy.Dialer = proxy.Direct
+	baseDialer := httprelay.DirectDialer()
+	var dialer proxy.Dialer = &baseDialer
 	if *blocklist != "" {
 		log.Println("Loading blocklist from file:", *blocklist)
 		var wrapErr error
@@ -40,7 +41,7 @@ func main() {
 	listener, listenErr := net_.ListenWithOptions(context.Background(), "tcp", *listenAddr,
 		map[net_.Option]int{{Level: syscall.SOL_IP, Option: syscall.IP_FREEBIND}: 1})
 	assert.Success(listenErr, "Failed to open local address for proxy")
-	handler := httprelay.NewHandler(dialer, "")
+	handler := httprelay.HTTPProxyHandler{Dialer: dialer, UserAgent: ""}
 	server := http.Server{Handler: &handler}
 	log.Println("HTTP proxy server started on", *listenAddr)
 	log.Println(server.Serve(listener))

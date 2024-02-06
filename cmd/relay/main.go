@@ -32,7 +32,8 @@ func main() {
 		auth.Password = *socksPassword
 	}
 	// Prepare proxy relay with target SOCKS proxy
-	dialer, err := proxy.SOCKS5("tcp", *socksAddr, auth, proxy.Direct)
+	baseDialer := httprelay.DirectDialer()
+	dialer, err := proxy.SOCKS5("tcp", *socksAddr, auth, &baseDialer)
 	if err != nil {
 		log.Println("Failed to create proxy definition:", err.Error())
 		return
@@ -53,7 +54,7 @@ func main() {
 	listener, listenErr := net_.ListenWithOptions(context.Background(), "tcp", *listenAddr,
 		map[net_.Option]int{{Level: syscall.SOL_IP, Option: syscall.IP_FREEBIND}: 1})
 	assert.Success(listenErr, "Failed to open local address for proxy")
-	handler := httprelay.NewHandler(dialer, "")
+	handler := httprelay.HTTPProxyHandler{Dialer: dialer, UserAgent: ""}
 	server := http.Server{Handler: &handler}
 	log.Println("HTTP proxy relay server started on", *listenAddr, "relaying to SOCKS proxy", *socksAddr)
 	log.Println(server.Serve(listener))

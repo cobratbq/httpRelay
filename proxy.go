@@ -4,13 +4,23 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	io_ "github.com/cobratbq/goutils/std/io"
 	http_ "github.com/cobratbq/goutils/std/net/http"
 	"golang.org/x/net/proxy"
 )
+
+func DirectDialer() net.Dialer {
+	return net.Dialer{
+		Timeout:   0,
+		Deadline:  time.Time{},
+		KeepAlive: -1,
+	}
+}
 
 // mnot's blog: https://www.mnot.net/blog/2011/07/11/what_proxies_must_do
 // rfc: http://tools.ietf.org/html/draft-ietf-httpbis-p1-messaging-14#section-3.3
@@ -32,22 +42,6 @@ type HTTPProxyHandler struct {
 	// Dialer is the dialer for connecting to the SOCKS5 proxy.
 	Dialer    proxy.Dialer
 	UserAgent string
-	client    http.Client
-}
-
-func NewHandler(dialer proxy.Dialer, useragent string) HTTPProxyHandler {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.DisableKeepAlives = true
-	transport.MaxIdleConns = 0
-	transport.MaxIdleConnsPerHost = 0
-	transport.MaxConnsPerHost = 0
-	return HTTPProxyHandler{
-		Dialer:    dialer,
-		UserAgent: useragent,
-		client: http.Client{
-			Transport: transport,
-		},
-	}
 }
 
 func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
