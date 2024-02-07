@@ -69,7 +69,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	logRequest(req)
 	// Verification of requests is already handled by net/http library.
 	// Establish connection with socks proxy
-	conn, err := h.Dialer.Dial("tcp", fullHost(req.Host))
+	conn, err := h.Dialer.Dial("tcp", fullHost(req.URL.Host))
 	if err == ErrBlockedHost {
 		resp.WriteHeader(http.StatusForbidden)
 		return err

@@ -73,7 +73,7 @@ var tokenPattern = regexp.MustCompile(`^[\d\w\!#\$%&'\*\+\-\.\^_\|~` + "`" + `]+
 
 // log the request
 func logRequest(req *http.Request) {
-	log.Infoln(req.Proto, req.Method, req.Host)
+	log.Infoln(req.Proto, req.Method, req.URL.Host, "(", req.Host, ")")
 }
 
 func logWarning(parts ...any) {
