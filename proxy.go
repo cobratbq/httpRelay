@@ -104,6 +104,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	}
 	// Transfer headers to client response
 	copyHeaders(resp.Header(), proxyResp.Header)
+	resp.Header().Set("Connection", "close")
 	// Verification of response is already handled by net/http library.
 	resp.WriteHeader(proxyResp.StatusCode)
 	_, err = io.Copy(resp, proxyResp.Body)
