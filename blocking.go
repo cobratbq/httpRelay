@@ -88,7 +88,7 @@ func (b *BlocklistDialer) Load(in io.Reader) error {
 			skipped++
 			return nil
 		}
-		set.InsertMany(b.List, parts[1:]...)
+		set.InsertMany(b.List, parts[1:])
 		return nil
 	}); err != nil {
 		return errors.Context(err, "failed to read hosts content")
