@@ -64,6 +64,10 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
 	// TODO what to do when body of request is very large?
 	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		resp.WriteHeader(http.StatusInternalServerError)
+		return err
+	}
 	io_.CloseLogged(req.Body, "Failed to close request body: %+v")
 	// The request body is only closed in certain error cases. In other cases, we
 	// let body be closed by during processing of request to remote host.
@@ -78,7 +82,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	defer io_.CloseLogged(conn, "Error closing connection to socks proxy: %+v")
+	defer io_.CloseLoggedWithIgnores(conn, "Error closing connection to socks proxy: %+v", io.ErrClosedPipe)
 	// Prepare request for socks proxy
 	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, bytes.NewReader(body))
 	if err != nil {
@@ -109,13 +113,13 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// Verification of response is already handled by net/http library.
 	resp.WriteHeader(proxyResp.StatusCode)
 	_, err = io.Copy(resp, proxyResp.Body)
-	io_.CloseLogged(proxyResp.Body, "Error closing response body: %+v")
+	io_.CloseLoggedWithIgnores(proxyResp.Body, "Error closing response body: %+v", io.ErrClosedPipe)
 	return err
 }
 
 // TODO append body that explains the error as is expected from 5xx http status codes
 func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) error {
-	defer io_.CloseLogged(req.Body, "Error while closing request body: %+v")
+	defer io_.CloseLoggedWithIgnores(req.Body, "Error while closing request body: %+v", io.ErrClosedPipe)
 	log.Infoln(req.Proto, req.Method, req.URL.Host)
 	// Establish connection with socks proxy
 	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
@@ -126,14 +130,14 @@ func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Req
 		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	defer io_.CloseLogged(proxyConn, "Failed to close connection to remote location: %+v")
+	defer io_.CloseLoggedWithIgnores(proxyConn, "Failed to close connection to remote location: %+v", io.ErrClosedPipe)
 	// Acquire raw connection to the client
 	clientInput, clientConn, err := http_.HijackConnection(resp)
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
-	defer io_.CloseLogged(clientConn, "Failed to close connection to local client: %+v")
+	defer io_.CloseLoggedWithIgnores(clientConn, "Failed to close connection to local client: %+v", io.ErrClosedPipe)
 	// Send 200 Connection established to client to signal tunnel ready
 	// Responses to CONNECT requests MUST NOT contain any body payload.
 	// TODO add additional headers to proxy server's response? (Via)
