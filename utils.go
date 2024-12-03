@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/cobratbq/goutils/std/builtin/set"
-	"github.com/cobratbq/goutils/std/log"
 )
 
 // headers that are dedicated to a single connection and should not copied to
@@ -70,12 +69,3 @@ func processConnectionHdr(dropHdrs map[string]struct{}, value string) []string {
 
 // tokenPattern is the pattern of a valid token.
 var tokenPattern = regexp.MustCompile(`^[\d\w\!#\$%&'\*\+\-\.\^_\|~` + "`" + `]+$`)
-
-// log the request
-func logRequest(req *http.Request) {
-	log.Infoln(req.Proto, req.Method, req.URL.Host, "(", req.Host, ")")
-}
-
-func logWarning(parts ...any) {
-	log.Warnln(parts...)
-}

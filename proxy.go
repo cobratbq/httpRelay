@@ -10,6 +10,7 @@ import (
 	"time"
 
 	io_ "github.com/cobratbq/goutils/std/io"
+	"github.com/cobratbq/goutils/std/log"
 	http_ "github.com/cobratbq/goutils/std/net/http"
 	"golang.org/x/net/proxy"
 )
@@ -55,7 +56,7 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 		err = h.processRequest(resp, req)
 	}
 	if err != nil {
-		logWarning("Error serving proxy relay:", err.Error())
+		log.Warnln("Error serving request:", err.Error())
 	}
 }
 
@@ -66,7 +67,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	io_.CloseLogged(req.Body, "Failed to close request body: %+v")
 	// The request body is only closed in certain error cases. In other cases, we
 	// let body be closed by during processing of request to remote host.
-	logRequest(req)
+	log.Infoln(req.Proto, req.Method, req.URL.Host)
 	// Verification of requests is already handled by net/http library.
 	// Establish connection with socks proxy
 	conn, err := h.Dialer.Dial("tcp", fullHost(req.URL.Host))
@@ -115,7 +116,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 // TODO append body that explains the error as is expected from 5xx http status codes
 func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) error {
 	defer io_.CloseLogged(req.Body, "Error while closing request body: %+v")
-	logRequest(req)
+	log.Infoln(req.Proto, req.Method, req.URL.Host)
 	// Establish connection with socks proxy
 	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
 	if err == ErrBlockedHost {
