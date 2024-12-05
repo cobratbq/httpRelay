@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cobratbq/goutils/std/errors"
 	io_ "github.com/cobratbq/goutils/std/io"
 	"github.com/cobratbq/goutils/std/log"
 	http_ "github.com/cobratbq/goutils/std/net/http"
@@ -77,10 +78,10 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	conn, err := h.Dialer.Dial("tcp", fullHost(req.URL.Host))
 	if err == ErrBlockedHost {
 		resp.WriteHeader(http.StatusForbidden)
-		return err
+		return errors.Context(err, "host '"+req.URL.Host+"'")
 	} else if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		return err
+		return errors.Context(err, "failed to connect to host")
 	}
 	defer io_.CloseLoggedWithIgnores(conn, "Error closing connection to socks proxy: %+v", io.ErrClosedPipe)
 	// Prepare request for socks proxy

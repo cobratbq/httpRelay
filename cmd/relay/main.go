@@ -3,13 +3,12 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
 	"net/http"
+	"os"
 	"syscall"
 
-	"github.com/cobratbq/goutils/assert"
+	"github.com/cobratbq/goutils/std/log"
 	net_ "github.com/cobratbq/goutils/std/net"
-	os_ "github.com/cobratbq/goutils/std/os"
 	"github.com/cobratbq/goutils/std/strings"
 	"github.com/cobratbq/httprelay"
 	"golang.org/x/net/proxy"
@@ -35,27 +34,31 @@ func main() {
 	baseDialer := httprelay.DirectDialer()
 	dialer, err := proxy.SOCKS5("tcp", *socksAddr, auth, &baseDialer)
 	if err != nil {
-		log.Println("Failed to create proxy definition:", err.Error())
-		return
+		log.Errorln("Failed to create proxy definition:", err.Error())
+		os.Exit(1)
 	}
 	if *blocklist != "" {
-		log.Println("Loading blocklist from file:", *blocklist)
+		log.Infoln("Loading blocklist from file:", *blocklist)
 		var wrapErr error
 		if dialer, wrapErr = httprelay.WrapBlocklistBlocking(dialer, *blocklist); wrapErr != nil {
-			os_.ExitWithError(1, "Failed to load blocklist: "+wrapErr.Error())
+			log.Errorln("Failed to load blocklist:", wrapErr.Error())
+			os.Exit(1)
 		}
 	}
 	if *blockLocal || *blockAddrs != "" {
-		log.Println("Blocking local addresses:", *blockLocal, ", custom addresses:",
+		log.Infoln("Blocking local addresses:", *blockLocal, ", custom addresses:",
 			strings.OrDefault(*blockAddrs, "<none>"))
 		dialer = httprelay.WrapPerHostBlocking(dialer, *blockLocal, *blockAddrs)
 	}
 	// Start HTTP proxy server
 	listener, listenErr := net_.ListenWithOptions(context.Background(), "tcp", *listenAddr,
 		map[net_.Option]int{{Level: syscall.SOL_IP, Option: syscall.IP_FREEBIND}: 1})
-	assert.Success(listenErr, "Failed to open local address for proxy")
+	if listenErr != nil {
+		log.Errorln("Failed to open local address for proxy:", err.Error())
+		os.Exit(1)
+	}
 	handler := httprelay.HTTPProxyHandler{Dialer: dialer, UserAgent: ""}
 	server := http.Server{Handler: &handler}
-	log.Println("HTTP proxy relay server started on", *listenAddr, "relaying to SOCKS proxy", *socksAddr)
-	log.Println(server.Serve(listener))
+	log.Infoln("HTTP proxy relay server started on", *listenAddr, "relaying to SOCKS proxy", *socksAddr)
+	log.Infoln(server.Serve(listener))
 }
