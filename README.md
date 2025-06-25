@@ -19,6 +19,7 @@ Start a (tiny) generic HTTP proxy server that listens on port 8080 of 'localhost
 The program arguments that are available to both programs.
 
 - `-block` provide any number of network addresses/ranges to protect from access through the proxy/relay.
+- `-block-local` block private network IP-ranges. (Enabled by default.)
 - `-blocklist` specify a `hosts`-formatted blocklist to be loaded and used.
 - `-listen` specify the address and port on which to listen for incoming proxy connections.
 
