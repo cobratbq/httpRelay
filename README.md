@@ -22,6 +22,7 @@ The program arguments that are available to both programs.
 - `-block-local` block private network IP-ranges. (Enabled by default.)
 - `-blocklist` specify a `hosts`-formatted blocklist to be loaded and used.
 - `-listen` specify the address and port on which to listen for incoming proxy connections.
+- `-tunnel` "tunnel-mode", allowing only HTTP "CONNECT" method requests for establishing raw data connections.
 
 The following program arguments are applicable to `relay` only.
 
