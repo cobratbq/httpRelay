@@ -50,9 +50,9 @@ type HTTPProxyHandler struct {
 func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	var err error
 	switch req.Method {
-	case "CONNECT":
+	case http.MethodConnect:
 		// TODO Go 1.20 added an OnProxyConnect callback for use by proxies. This probably voids the use for connection hijacking. Investigate and possibly use.
-		err = h.handleConnect(resp, req)
+		err = processConnect(resp, req, h.Dialer.Dial)
 	default:
 		err = h.processRequest(resp, req)
 	}
@@ -118,12 +118,35 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	return err
 }
 
-// TODO append body that explains the error as is expected from 5xx http status codes
-func (h *HTTPProxyHandler) handleConnect(resp http.ResponseWriter, req *http.Request) error {
+// "CONNECT"-only proxy, i.e. only establish tunneled connections through CONNECT-method.
+type HTTPConnectHandler struct {
+	// Dialer is the dialer for connecting to the SOCKS5 proxy.
+	Dialer    proxy.Dialer
+	UserAgent string
+}
+
+func (h *HTTPConnectHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+	var err error
+	switch req.Method {
+	case http.MethodConnect:
+		// TODO Go 1.20 added an OnProxyConnect callback for use by proxies. This probably voids the use for connection hijacking. Investigate and possibly use.
+		err = processConnect(resp, req, h.Dialer.Dial)
+	case http.MethodHead, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions, http.MethodTrace, http.MethodPatch:
+		_, err = http_.RespondMethodNotAllowed(resp, []string{http.MethodConnect}, nil)
+	default:
+		resp.WriteHeader(http.StatusBadRequest)
+		_, err = resp.Write([]byte("Bad or unsupported request."))
+	}
+	if err != nil {
+		log.Warnln("Error serving request:", err.Error())
+	}
+}
+
+func processConnect(resp http.ResponseWriter, req *http.Request, dial func(string, string) (net.Conn, error)) error {
 	defer io_.CloseLoggedWithIgnores(req.Body, "Error while closing request body: %+v", io.ErrClosedPipe)
 	log.Infoln(req.Proto, req.Method, req.URL.Host)
 	// Establish connection with socks proxy
-	proxyConn, err := h.Dialer.Dial("tcp", req.Host)
+	proxyConn, err := dial("tcp", req.Host)
 	if err == ErrBlockedHost {
 		resp.WriteHeader(http.StatusForbidden)
 		return err

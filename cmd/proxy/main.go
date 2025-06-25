@@ -19,6 +19,7 @@ func main() {
 	blockAddrs := flag.String("block", "", "Comma-separated list of blocked host names, zone names, ip addresses and CIDR addresses.")
 	blockLocal := flag.Bool("block-local", true, "Block known local addresses.")
 	blocklist := flag.String("blocklist", "", "Filename referring to a hosts-formatted blocklist.")
+	tunnel := flag.Bool("tunnel", false, "Tunnel-mode: only allow CONNECT-method to establish raw tunneled connections.")
 	flag.Parse()
 	// Prepare proxy dialer
 	baseDialer := httprelay.DirectDialer()
@@ -44,8 +45,14 @@ func main() {
 		log.Errorln("Failed to open local address for proxy:", listenErr.Error())
 		os.Exit(1)
 	}
-	handler := httprelay.HTTPProxyHandler{Dialer: dialer, UserAgent: ""}
-	server := http.Server{Handler: &handler}
+	var handler http.Handler
+	if *tunnel {
+		log.Infoln("Tunnel-mode: only CONNECT is allowed.")
+		handler = &httprelay.HTTPConnectHandler{Dialer: dialer, UserAgent: ""}
+	} else {
+		handler = &httprelay.HTTPProxyHandler{Dialer: dialer, UserAgent: ""}
+	}
+	server := http.Server{Handler: handler}
 	log.Infoln("HTTP proxy server started on", *listenAddr)
 	log.Infoln(server.Serve(listener))
 }

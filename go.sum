@@ -10,6 +10,8 @@ github.com/cobratbq/goutils v0.0.0-20241201184206-c6af5f6d69cb h1:n0zONAffW5wVyz
 github.com/cobratbq/goutils v0.0.0-20241201184206-c6af5f6d69cb/go.mod h1:R3RuxFTWkwhpJtqQdku1cJqyeSuE4VboBT6H/gmLuHY=
 github.com/cobratbq/goutils v0.0.0-20250130155948-c1b4e3e5e9d5 h1:up/bnzQzt+bcSOeCcqPc1xNaytKuXaIKIo/6CgCx0EA=
 github.com/cobratbq/goutils v0.0.0-20250130155948-c1b4e3e5e9d5/go.mod h1:R3RuxFTWkwhpJtqQdku1cJqyeSuE4VboBT6H/gmLuHY=
+github.com/cobratbq/goutils v0.0.0-20250625015942-3ae7eff2ceb8 h1:N6z1sqn70m0LoKxet1ALLPpp8DJlJW2YXCDkV7YiHVQ=
+github.com/cobratbq/goutils v0.0.0-20250625015942-3ae7eff2ceb8/go.mod h1:R3RuxFTWkwhpJtqQdku1cJqyeSuE4VboBT6H/gmLuHY=
 golang.org/x/net v0.17.0 h1:pVaXccu2ozPjCXewfr1S7xza/zcXTity9cCdXQYSjIM=
 golang.org/x/net v0.17.0/go.mod h1:NxSsAGuq816PNPmqtQdLE42eU2Fs7NoRIZrHJAlaCOE=
 golang.org/x/net v0.20.0 h1:aCL9BSgETF1k+blQaYUBx9hJ9LOGP3gAVemcZlf1Kpo=
