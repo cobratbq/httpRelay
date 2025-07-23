@@ -2,6 +2,7 @@ package httprelay
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -102,8 +103,13 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	}
 	// Send request
 	proxyResp, err := h.client.Do(proxyReq)
-	if err != nil {
+	if errors.Is(err, ErrBlockedHost) {
+		resp.WriteHeader(http.StatusForbidden)
+		log.Infoln("Interrupted blocked request:", err.Error())
+		return nil
+	} else if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
+		log.Warnln("Failed to handle request:", err.Error())
 		return err
 	}
 	// Transfer headers to client response
