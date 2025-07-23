@@ -101,7 +101,6 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		return nil
 	} else if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
-		log.Warnln("Failed to handle request:", err.Error())
 		return err
 	}
 	log.Infoln(req.Proto, req.Method, req.URL.Host)
@@ -140,16 +139,17 @@ func (h *HTTPConnectHandler) ServeHTTP(resp http.ResponseWriter, req *http.Reque
 
 func processConnect(resp http.ResponseWriter, req *http.Request, dial func(string, string) (net.Conn, error)) error {
 	defer io_.CloseLoggedWithIgnores(req.Body, "Error while closing request body: %+v", io.ErrClosedPipe)
-	log.Infoln(req.Proto, req.Method, req.URL.Host)
 	// Establish connection with socks proxy
 	proxyConn, err := dial("tcp", req.Host)
-	if err == ErrBlockedHost {
+	if errors.Is(err, ErrBlockedHost) {
 		resp.WriteHeader(http.StatusForbidden)
-		return err
+		log.Infoln("Interrupted blocked request:", err.Error())
+		return nil
 	} else if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
+	log.Infoln(req.Proto, req.Method, req.URL.Host)
 	defer io_.CloseLoggedWithIgnores(proxyConn, "Failed to close connection to remote location: %+v", io.ErrClosedPipe)
 	// Acquire raw connection to the client
 	clientInput, clientConn, err := http_.HijackConnection(resp)
