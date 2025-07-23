@@ -38,6 +38,7 @@ This build will use the build flag `-tags netgo` to make the result independent 
 
 ## Changelog
 
+- _2025-07-23_ Adopt more of Go standard-library for http client-connection handling to benefit from http keep-alive and connection reuse and other optimizations.
 - _2025-06-25_ Add `-tunnel` flag to restrict proxy/relay to only `CONNECT` method.
 - _2023-08-15_ Command-line flags to provide username/password authentication for SOCKS5 proxy (relay) by [developbranch-cn](<https://github.com/developbranch-cn>).
 - _2020-02-04_ Added support for loading in blocklists that are checked as part of the proxying process.  
