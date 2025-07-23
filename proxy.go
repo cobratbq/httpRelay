@@ -1,7 +1,6 @@
 package httprelay
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"net"
@@ -79,18 +78,11 @@ func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request
 
 // TODO append body that explains the error as is expected from 5xx http status codes
 func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Request) error {
-	// TODO what to do when body of request is very large?
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		resp.WriteHeader(http.StatusInternalServerError)
-		return err
-	}
-	io_.CloseLogged(req.Body, "Failed to close request body: %+v")
 	// The request body is only closed in certain error cases. In other cases, we
 	// let body be closed by during processing of request to remote host.
-	log.Infoln(req.Proto, req.Method, req.URL.Host)
+	defer io_.CloseLogged(req.Body, "Failed to close request body: %+v")
 	// Prepare request
-	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, bytes.NewReader(body))
+	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, req.Body)
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
 		return err
@@ -112,6 +104,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		log.Warnln("Failed to handle request:", err.Error())
 		return err
 	}
+	log.Infoln(req.Proto, req.Method, req.URL.Host)
 	// Transfer headers to client response
 	copyHeaders(resp.Header(), proxyResp.Header)
 	// Verification of response is already handled by net/http library.
