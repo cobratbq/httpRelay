@@ -1,7 +1,6 @@
 package httprelay
 
 import (
-	"bufio"
 	"bytes"
 	"io"
 	"net"
@@ -9,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cobratbq/goutils/std/errors"
 	io_ "github.com/cobratbq/goutils/std/io"
 	"github.com/cobratbq/goutils/std/log"
 	http_ "github.com/cobratbq/goutils/std/net/http"
@@ -42,9 +40,26 @@ func DirectDialer() net.Dialer {
 
 // HTTPProxyHandler is a proxy handler that passes on request to a SOCKS5 proxy server.
 type HTTPProxyHandler struct {
+	client http.Client
 	// Dialer is the dialer for connecting to the SOCKS5 proxy.
 	Dialer    proxy.Dialer
 	UserAgent string
+}
+
+func NewProxyHandler(dialer proxy.Dialer) *HTTPProxyHandler {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DialContext = nil
+	transport.Dial = dialer.Dial
+	transport.DialTLSContext = nil
+	transport.DialTLS = dialer.Dial
+	// TODO investigate use of `OnProxyConnectResponse`, possibly allowing use of http/2
+	//transport.OnProxyConnectResponse
+	return &HTTPProxyHandler{
+		client: http.Client{
+			Transport: transport,
+		},
+		Dialer: dialer,
+	}
 }
 
 func (h *HTTPProxyHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
@@ -73,18 +88,7 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 	// The request body is only closed in certain error cases. In other cases, we
 	// let body be closed by during processing of request to remote host.
 	log.Infoln(req.Proto, req.Method, req.URL.Host)
-	// Verification of requests is already handled by net/http library.
-	// Establish connection with socks proxy
-	conn, err := h.Dialer.Dial("tcp", fullHost(req.URL.Host))
-	if err == ErrBlockedHost {
-		resp.WriteHeader(http.StatusForbidden)
-		return errors.Context(err, "host '"+req.URL.Host+"'")
-	} else if err != nil {
-		resp.WriteHeader(http.StatusInternalServerError)
-		return errors.Context(err, "failed to connect to host")
-	}
-	defer io_.CloseLoggedWithIgnores(conn, "Error closing connection to socks proxy: %+v", io.ErrClosedPipe)
-	// Prepare request for socks proxy
+	// Prepare request
 	proxyReq, err := http.NewRequest(req.Method, req.RequestURI, bytes.NewReader(body))
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
@@ -96,21 +100,14 @@ func (h *HTTPProxyHandler) processRequest(resp http.ResponseWriter, req *http.Re
 		// Add specified user agent as header.
 		proxyReq.Header.Add("User-Agent", h.UserAgent)
 	}
-	// Send request to socks proxy
-	if err = proxyReq.Write(conn); err != nil {
-		resp.WriteHeader(http.StatusInternalServerError)
-		return err
-	}
-	// Read proxy response
-	proxyRespReader := bufio.NewReader(conn)
-	proxyResp, err := http.ReadResponse(proxyRespReader, proxyReq)
+	// Send request
+	proxyResp, err := h.client.Do(proxyReq)
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
 		return err
 	}
 	// Transfer headers to client response
 	copyHeaders(resp.Header(), proxyResp.Header)
-	resp.Header().Set("Connection", "close")
 	// Verification of response is already handled by net/http library.
 	resp.WriteHeader(proxyResp.StatusCode)
 	_, err = io.Copy(resp, proxyResp.Body)

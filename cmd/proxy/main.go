@@ -50,7 +50,7 @@ func main() {
 		log.Infoln("Tunnel-mode: only CONNECT is allowed.")
 		handler = &httprelay.HTTPConnectHandler{Dialer: dialer, UserAgent: ""}
 	} else {
-		handler = &httprelay.HTTPProxyHandler{Dialer: dialer, UserAgent: ""}
+		handler = httprelay.NewProxyHandler(dialer)
 	}
 	server := http.Server{Handler: handler}
 	log.Infoln("HTTP proxy server started on", *listenAddr)
