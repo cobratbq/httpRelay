@@ -137,6 +137,7 @@ func (h *HTTPConnectHandler) ServeHTTP(resp http.ResponseWriter, req *http.Reque
 	}
 }
 
+// TODO consider using go stdlib for https-connections too, to benefit from its sophistication.
 func processConnect(resp http.ResponseWriter, req *http.Request, dial func(string, string) (net.Conn, error)) error {
 	defer io_.CloseLoggedWithIgnores(req.Body, "Error while closing request body: %+v", io.ErrClosedPipe)
 	// Establish connection with socks proxy
